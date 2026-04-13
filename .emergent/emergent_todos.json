@@ -1,10 +1,14 @@
 [
   {
-    "content": "Add clear login button to welcome page for returning users",
+    "content": "Fix tab navigation to auto-scroll and show content on mobile",
     "status": "completed"
   },
   {
-    "content": "Test login flow from welcome page",
+    "content": "Ensure clicked tabs open/expand immediately",
+    "status": "completed"
+  },
+  {
+    "content": "Test smooth navigation on mobile viewport",
     "status": "completed"
   }
 ]

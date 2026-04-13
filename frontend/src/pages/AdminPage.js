@@ -26,6 +26,7 @@ import { toast } from 'sonner';
 export default function AdminPage() {
   const { user, logout } = useApp();
   const [tab, setTab] = useState('overview');
+  const tabsContainerRef = React.useRef(null);
   const [stats, setStats] = useState(null);
   const [extStats, setExtStats] = useState(null);
   const [users, setUsers] = useState([]);
@@ -231,6 +232,18 @@ export default function AdminPage() {
       setUserStageFilter(options.stageFilter);
       setTimeout(() => loadUsersWithFilter(options.stageFilter, userSearchQuery), 100);
     }
+    
+    // Scroll to tabs container on mobile for better UX
+    setTimeout(() => {
+      if (tabsContainerRef.current) {
+        // Scroll tabs into view smoothly
+        tabsContainerRef.current.scrollIntoView({ 
+          behavior: 'smooth', 
+          block: 'start',
+          inline: 'nearest'
+        });
+      }
+    }, 100);
   };
 
   return (
@@ -258,7 +271,7 @@ export default function AdminPage() {
 
       <div className="max-w-7xl mx-auto px-6 py-6">
         <Tabs value={tab} onValueChange={setTab}>
-          <div className="overflow-x-auto mb-6">
+          <div ref={tabsContainerRef} className="overflow-x-auto mb-6 scroll-mt-4">
             <TabsList className="inline-flex">
               <TabsTrigger value="overview"><BarChart3 className="w-4 h-4 mr-1" /> Overview</TabsTrigger>
               <TabsTrigger value="users"><Users className="w-4 h-4 mr-1" /> Users</TabsTrigger>
