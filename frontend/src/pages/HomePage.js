@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Flame, RefreshCw, ArrowRight, Zap, Trophy, BookOpen, Sparkles } from 'lucide-react';
+import { Flame, RefreshCw, ArrowRight, Zap, Trophy, BookOpen, Sparkles, Brain, MessageSquare, Users, Video } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
 
@@ -226,6 +226,57 @@ export default function HomePage() {
           </Card>
           <Card
             className="cursor-pointer hover:shadow-[var(--shadow-soft)] transition-shadow"
+            onClick={() => navigate('/patterns')}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[hsl(18,92%,52%,0.1)] flex items-center justify-center">
+                <Brain className="w-5 h-5 text-[hsl(18,92%,52%)]" />
+              </div>
+              <div>
+                <p className="font-display font-semibold text-sm">Patterns</p>
+                <p className="text-xs text-[hsl(22,12%,40%)]">Your walls</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer hover:shadow-[var(--shadow-soft)] transition-shadow"
+            onClick={() => navigate('/stories')}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[hsl(43,92%,55%,0.15)] flex items-center justify-center">
+                <MessageSquare className="w-5 h-5 text-[hsl(43,92%,45%)]" />
+              </div>
+              <div>
+                <p className="font-display font-semibold text-sm">Stories</p>
+                <p className="text-xs text-[hsl(22,12%,40%)]">Community</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer hover:shadow-[var(--shadow-soft)] transition-shadow"
+            onClick={() => navigate('/buddies')}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[hsl(200,70%,40%,0.1)] flex items-center justify-center">
+                <Users className="w-5 h-5 text-[hsl(200,70%,40%)]" />
+              </div>
+              <div>
+                <p className="font-display font-semibold text-sm">Community</p>
+                <p className="text-xs text-[hsl(22,12%,40%)]">Buddies & Mentors</p>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Extra Links */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+          className="grid grid-cols-2 gap-3 mt-3"
+        >
+          <Card
+            className="cursor-pointer hover:shadow-[var(--shadow-soft)] transition-shadow"
             onClick={() => navigate('/mantras')}
           >
             <CardContent className="p-4 flex items-center gap-3">
@@ -235,6 +286,20 @@ export default function HomePage() {
               <div>
                 <p className="font-display font-semibold text-sm">Mantras</p>
                 <p className="text-xs text-[hsl(22,12%,40%)]">Daily fuel</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card
+            className="cursor-pointer hover:shadow-[var(--shadow-soft)] transition-shadow"
+            onClick={() => navigate('/videos')}
+          >
+            <CardContent className="p-4 flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[hsl(18,92%,52%,0.1)] flex items-center justify-center">
+                <Video className="w-5 h-5 text-[hsl(18,92%,52%)]" />
+              </div>
+              <div>
+                <p className="font-display font-semibold text-sm">Videos</p>
+                <p className="text-xs text-[hsl(22,12%,40%)]">Watch & learn</p>
               </div>
             </CardContent>
           </Card>

@@ -2,13 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { api } from '../lib/api';
 import { Card, CardContent } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Trophy, BookOpen, Calendar } from 'lucide-react';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter
+} from '../components/ui/dialog';
+import { Switch } from '../components/ui/switch';
+import { Trophy, BookOpen, Calendar, Share2, EyeOff, Send } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { toast } from 'sonner';
 
 export default function VaultPage() {
   const [vault, setVault] = useState([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [shareEntry, setShareEntry] = useState(null);
+  const [shareAnonymous, setShareAnonymous] = useState(false);
+  const [shareTitle, setShareTitle] = useState('');
+  const [sharing, setSharing] = useState(false);
 
   useEffect(() => {
     loadVault();
@@ -23,6 +34,26 @@ export default function VaultPage() {
       console.error('Failed to load vault:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    if (!shareEntry) return;
+    setSharing(true);
+    try {
+      await api.post('/api/stories', {
+        reflection_id: shareEntry.id,
+        anonymous: shareAnonymous,
+        title: shareTitle
+      });
+      toast.success('Story submitted for review!');
+      setShareEntry(null);
+      setShareTitle('');
+      setShareAnonymous(false);
+    } catch (err) {
+      toast.error(err.message || 'Failed to share');
+    } finally {
+      setSharing(false);
     }
   };
 
@@ -90,10 +121,24 @@ export default function VaultPage() {
                           #{idx + 1}
                         </Badge>
                       </div>
-                      <span className="text-xs text-[hsl(22,12%,40%)] flex items-center gap-1">
-                        <Calendar className="w-3 h-3" />
-                        {entry.date}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-[hsl(22,12%,40%)] flex items-center gap-1">
+                          <Calendar className="w-3 h-3" />
+                          {entry.date}
+                        </span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setShareEntry(entry);
+                            setShareTitle(entry.challenge_title || '');
+                          }}
+                          className="text-[hsl(22,12%,40%)] hover:text-[hsl(18,92%,52%)]"
+                          title="Share as Story"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
 
                     {/* The lesson - hero of the card */}
@@ -113,6 +158,49 @@ export default function VaultPage() {
             ))}
           </div>
         )}
+
+        {/* Share Dialog */}
+        <Dialog open={!!shareEntry} onOpenChange={(open) => { if (!open) setShareEntry(null); }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="font-display">Share Your Story</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <p className="text-sm text-[hsl(22,12%,40%)]">
+                Share this reflection with the community to inspire others on their journey. Your story will be reviewed before publishing.
+              </p>
+              <div>
+                <label className="block text-sm font-medium mb-1.5">Story Title</label>
+                <Input
+                  placeholder="Give your story a title..."
+                  value={shareTitle}
+                  onChange={(e) => setShareTitle(e.target.value)}
+                />
+              </div>
+              <div className="flex items-center justify-between p-3 rounded-lg bg-[hsl(36,45%,97%)]">
+                <div className="flex items-center gap-2">
+                  <EyeOff className="w-4 h-4 text-[hsl(22,12%,40%)]" />
+                  <span className="text-sm">Post anonymously</span>
+                </div>
+                <Switch checked={shareAnonymous} onCheckedChange={setShareAnonymous} />
+              </div>
+              <div className="bg-[hsl(173,55%,34%,0.04)] rounded-lg p-3 border border-[hsl(173,55%,34%,0.1)]">
+                <p className="text-sm italic text-[hsl(173,55%,34%)]">"{shareEntry?.lesson}"</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShareEntry(null)}>Cancel</Button>
+              <Button
+                onClick={handleShare}
+                disabled={sharing}
+                className="bg-[hsl(18,92%,52%)] text-white hover:bg-[hsl(18,92%,48%)]"
+              >
+                {sharing ? 'Sharing...' : 'Submit Story'}
+                <Send className="ml-2 w-4 h-4" />
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );

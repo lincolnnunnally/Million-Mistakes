@@ -391,6 +391,310 @@ class TenMillionMistakesAPITester:
             auth_token=self.admin_token
         )
 
+    # ============== PHASE 3 TESTS ==============
+    
+    def test_patterns(self):
+        """Test pattern discovery"""
+        return self.run_test(
+            "Get Pattern Insights",
+            "GET",
+            "/api/patterns",
+            200,
+            auth_token=self.user_token
+        )
+
+    def test_stories_flow(self):
+        """Test stories creation and community feed"""
+        if not self.reflection_id:
+            self.log("❌ No reflection ID available for story creation")
+            return False
+            
+        # Create a story
+        success1, response = self.run_test(
+            "Create Story",
+            "POST",
+            "/api/stories",
+            200,
+            data={
+                "reflection_id": self.reflection_id,
+                "anonymous": False,
+                "title": "My Test Story"
+            },
+            auth_token=self.user_token
+        )
+        
+        story_id = None
+        if success1 and 'story' in response:
+            story_id = response['story']['id']
+            self.log(f"✅ Story ID: {story_id}")
+        
+        # Get community feed
+        success2, _ = self.run_test(
+            "Get Community Stories",
+            "GET",
+            "/api/stories",
+            200,
+            auth_token=self.user_token
+        )
+        
+        # Get my stories
+        success3, _ = self.run_test(
+            "Get My Stories",
+            "GET",
+            "/api/stories/mine",
+            200,
+            auth_token=self.user_token
+        )
+        
+        # Like a story (if we have one)
+        success4 = True
+        if story_id:
+            success4, _ = self.run_test(
+                "Like Story",
+                "POST",
+                f"/api/stories/{story_id}/like",
+                200,
+                auth_token=self.user_token
+            )
+        
+        return success1 and success2 and success3 and success4
+
+    def test_buddy_system(self):
+        """Test buddy matching system"""
+        # Get current connections
+        success1, _ = self.run_test(
+            "Get Buddy Connections",
+            "GET",
+            "/api/buddies/connections",
+            200,
+            auth_token=self.user_token
+        )
+        
+        # Check request status
+        success2, _ = self.run_test(
+            "Get Buddy Request Status",
+            "GET",
+            "/api/buddies/request/status",
+            200,
+            auth_token=self.user_token
+        )
+        
+        # Create buddy request
+        success3, _ = self.run_test(
+            "Create Buddy Request",
+            "POST",
+            "/api/buddies/request",
+            200,
+            data={
+                "domain": "money_career",
+                "message": "Looking for a buddy to grow with!"
+            },
+            auth_token=self.user_token
+        )
+        
+        # Cancel buddy request (cleanup)
+        success4, _ = self.run_test(
+            "Cancel Buddy Request",
+            "DELETE",
+            "/api/buddies/request",
+            200,
+            auth_token=self.user_token
+        )
+        
+        return success1 and success2 and success3 and success4
+
+    def test_mentorship_system(self):
+        """Test mentorship system"""
+        # Create mentor offer
+        success1, response = self.run_test(
+            "Create Mentor Offer",
+            "POST",
+            "/api/mentorship/offer",
+            200,
+            data={
+                "domain": "money_career",
+                "description": "I can help with career transitions",
+                "role": "mentor"
+            },
+            auth_token=self.user_token
+        )
+        
+        offer_id = None
+        if success1 and 'offer' in response:
+            offer_id = response['offer']['id']
+        
+        # Browse mentor offers
+        success2, _ = self.run_test(
+            "Browse Mentor Offers",
+            "GET",
+            "/api/mentorship/offers",
+            200,
+            auth_token=self.user_token
+        )
+        
+        # Get my offers
+        success3, _ = self.run_test(
+            "Get My Mentor Offers",
+            "GET",
+            "/api/mentorship/mine",
+            200,
+            auth_token=self.user_token
+        )
+        
+        # Withdraw offer (cleanup)
+        success4 = True
+        if offer_id:
+            success4, _ = self.run_test(
+                "Withdraw Mentor Offer",
+                "DELETE",
+                f"/api/mentorship/offer/{offer_id}",
+                200,
+                auth_token=self.user_token
+            )
+        
+        return success1 and success2 and success3 and success4
+
+    def test_video_library(self):
+        """Test video library"""
+        # Get all videos
+        success1, _ = self.run_test(
+            "Get All Videos",
+            "GET",
+            "/api/videos",
+            200,
+            auth_token=self.user_token
+        )
+        
+        # Get videos filtered by domain
+        success2, _ = self.run_test(
+            "Get Videos by Domain",
+            "GET",
+            "/api/videos?domain=Money/Career",
+            200,
+            auth_token=self.user_token
+        )
+        
+        # Get videos filtered by stage
+        success3, _ = self.run_test(
+            "Get Videos by Stage",
+            "GET",
+            "/api/videos?stage=2",
+            200,
+            auth_token=self.user_token
+        )
+        
+        return success1 and success2 and success3
+
+    def test_admin_phase3_features(self):
+        """Test admin Phase 3 features"""
+        if not self.admin_token:
+            return False
+            
+        # Extended stats
+        success1, _ = self.run_test(
+            "Admin Extended Stats",
+            "GET",
+            "/api/admin/stats/extended",
+            200,
+            auth_token=self.admin_token
+        )
+        
+        # Story moderation
+        success2, _ = self.run_test(
+            "Admin Get Stories",
+            "GET",
+            "/api/admin/stories",
+            200,
+            auth_token=self.admin_token
+        )
+        
+        # Video management
+        success3, _ = self.run_test(
+            "Admin Get Videos",
+            "GET",
+            "/api/admin/videos",
+            200,
+            auth_token=self.admin_token
+        )
+        
+        # Create test video
+        success4, response = self.run_test(
+            "Admin Create Video",
+            "POST",
+            "/api/admin/videos",
+            200,
+            data={
+                "title": "Test Video",
+                "description": "A test video for API testing",
+                "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                "domain": "general",
+                "stage": 0,
+                "thumbnail_url": ""
+            },
+            auth_token=self.admin_token
+        )
+        
+        video_id = None
+        if success4 and 'video' in response:
+            video_id = response['video']['id']
+        
+        # Update video
+        success5 = True
+        if video_id:
+            success5, _ = self.run_test(
+                "Admin Update Video",
+                "PUT",
+                f"/api/admin/videos/{video_id}",
+                200,
+                data={
+                    "title": "Updated Test Video",
+                    "description": "Updated description",
+                    "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+                    "domain": "Money/Career",
+                    "stage": 1,
+                    "thumbnail_url": ""
+                },
+                auth_token=self.admin_token
+            )
+        
+        # Delete video (cleanup)
+        success6 = True
+        if video_id:
+            success6, _ = self.run_test(
+                "Admin Delete Video",
+                "DELETE",
+                f"/api/admin/videos/{video_id}",
+                200,
+                auth_token=self.admin_token
+            )
+        
+        # Community management
+        success7, _ = self.run_test(
+            "Admin Get Buddy Requests",
+            "GET",
+            "/api/admin/buddy-requests",
+            200,
+            auth_token=self.admin_token
+        )
+        
+        success8, _ = self.run_test(
+            "Admin Get Connections",
+            "GET",
+            "/api/admin/connections",
+            200,
+            auth_token=self.admin_token
+        )
+        
+        success9, _ = self.run_test(
+            "Admin Get Mentor Offers",
+            "GET",
+            "/api/admin/mentor-offers",
+            200,
+            auth_token=self.admin_token
+        )
+        
+        return all([success1, success2, success3, success4, success5, success6, success7, success8, success9])
+
     def run_all_tests(self):
         """Run all tests in sequence"""
         self.log("🚀 Starting 10 Million Mistakes API Tests")
@@ -437,6 +741,14 @@ class TenMillionMistakesAPITester:
             self.test_admin_user_detail()
             self.test_admin_mantras()
             self.test_admin_reflections()
+            self.test_admin_phase3_features()
+        
+        # Phase 3 feature tests
+        self.test_patterns()
+        self.test_stories_flow()
+        self.test_buddy_system()
+        self.test_mentorship_system()
+        self.test_video_library()
         
         return self.print_results()
 

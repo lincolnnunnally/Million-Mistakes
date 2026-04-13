@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AppProvider, useApp } from './lib/context';
 import { Toaster } from './components/ui/sonner';
-import { Flame, Home, Trophy, BookOpen, TrendingUp, Shield } from 'lucide-react';
+import { Flame, Home, Trophy, BookOpen, TrendingUp, Brain, MessageSquare, Users, Video } from 'lucide-react';
 import './App.css';
 
 // Pages
@@ -15,6 +15,10 @@ import ReflectionPage from './pages/ReflectionPage';
 import VaultPage from './pages/VaultPage';
 import MantrasPage from './pages/MantrasPage';
 import ProgressPage from './pages/ProgressPage';
+import PatternsPage from './pages/PatternsPage';
+import StoriesPage from './pages/StoriesPage';
+import BuddiesPage from './pages/BuddiesPage';
+import VideosPage from './pages/VideosPage';
 import AdminPage from './pages/AdminPage';
 
 function ProtectedRoute({ children, requireAdmin = false, requireOnboarded = false }) {
@@ -52,7 +56,8 @@ function BottomNav() {
   const navItems = [
     { path: '/home', icon: Home, label: 'Home' },
     { path: '/vault', icon: Trophy, label: 'Vault' },
-    { path: '/mantras', icon: BookOpen, label: 'Mantras' },
+    { path: '/patterns', icon: Brain, label: 'Patterns' },
+    { path: '/stories', icon: MessageSquare, label: 'Stories' },
     { path: '/progress', icon: TrendingUp, label: 'Progress' }
   ];
 
@@ -106,6 +111,18 @@ function AppRoutes() {
         } />
         <Route path="/progress" element={
           <ProtectedRoute requireOnboarded><ProgressPage /></ProtectedRoute>
+        } />
+        <Route path="/patterns" element={
+          <ProtectedRoute requireOnboarded><PatternsPage /></ProtectedRoute>
+        } />
+        <Route path="/stories" element={
+          <ProtectedRoute requireOnboarded><StoriesPage /></ProtectedRoute>
+        } />
+        <Route path="/buddies" element={
+          <ProtectedRoute requireOnboarded><BuddiesPage /></ProtectedRoute>
+        } />
+        <Route path="/videos" element={
+          <ProtectedRoute requireOnboarded><VideosPage /></ProtectedRoute>
         } />
         <Route path="/admin" element={
           <ProtectedRoute requireAdmin><AdminPage /></ProtectedRoute>

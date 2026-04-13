@@ -20,6 +20,7 @@ from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
 
 from ai_service import generate_challenge, get_fallback_challenge
+from pattern_service import generate_rules_based_insights, generate_ai_weekly_summary
 from seed_data import (
     QUIZ_QUESTIONS, MANTRAS, STAGE_DESCRIPTIONS, DOMAINS,
     LEVELS, ENCOURAGEMENTS
@@ -199,6 +200,41 @@ class ReflectionInput(BaseModel):
 class MantraInput(BaseModel):
     text: str
     category: str = "general"
+
+class StoryInput(BaseModel):
+    reflection_id: str
+    anonymous: bool = False
+    title: str = ""
+
+class StoryModerationInput(BaseModel):
+    status: str  # 'approved' or 'rejected'
+    reason: str = ""
+
+class BuddyRequestInput(BaseModel):
+    domain: str = ""
+    message: str = ""
+
+class BuddyActionInput(BaseModel):
+    action: str  # 'accept' or 'decline'
+
+class MentorOfferInput(BaseModel):
+    domain: str
+    description: str = ""
+    role: str = "mentor"  # 'mentor' or 'mentee'
+
+class MentorMatchInput(BaseModel):
+    mentor_id: str
+    mentee_id: str
+    domain: str
+    note: str = ""
+
+class VideoInput(BaseModel):
+    title: str
+    description: str = ""
+    url: str  # YouTube/Vimeo URL
+    domain: str = "general"
+    stage: int = 0  # 0 = all stages
+    thumbnail_url: str = ""
 
 
 # ============== AUTH ENDPOINTS ==============
@@ -659,8 +695,496 @@ async def admin_get_reflections(user=Depends(get_admin_user), skip: int = 0, lim
     }
 
 
+# ============== PATTERN DISCOVERY ENDPOINTS ==============
+
+@app.get("/api/patterns")
+async def get_patterns(user=Depends(get_current_user)):
+    """Get pattern insights for the current user."""
+    user_id = user['id']
+    reflections = await db.reflections.find({"user_id": user_id}).sort("created_at", -1).to_list(200)
+    
+    # Get associated challenges
+    challenge_ids = [r.get('challenge_id') for r in reflections if r.get('challenge_id')]
+    challenges = []
+    for cid in challenge_ids:
+        try:
+            c = await db.challenges.find_one({"_id": ObjectId(cid)})
+            if c:
+                challenges.append(serialize_doc(c))
+        except:
+            pass
+
+    insights = generate_rules_based_insights(reflections, challenges)
+    
+    # Generate AI weekly summary if enough data
+    ai_summary = None
+    if len(reflections) >= 3:
+        stage = user.get('stage', 2)
+        ai_summary = await generate_ai_weekly_summary(reflections, insights, stage)
+    
+    insights['ai_summary'] = ai_summary
+    return insights
+
+
+# ============== STORIES FEED ENDPOINTS ==============
+
+@app.post("/api/stories")
+async def create_story(data: StoryInput, user=Depends(get_current_user)):
+    """Share a reflection as a story in the community feed."""
+    user_id = user['id']
+    
+    # Get the reflection
+    try:
+        reflection = await db.reflections.find_one({"_id": ObjectId(data.reflection_id), "user_id": user_id})
+    except:
+        reflection = None
+    if not reflection:
+        raise HTTPException(status_code=404, detail="Reflection not found")
+    
+    # Get challenge title
+    challenge_title = ""
+    if reflection.get('challenge_id'):
+        try:
+            challenge = await db.challenges.find_one({"_id": ObjectId(reflection['challenge_id'])})
+            if challenge:
+                challenge_title = challenge.get('title', '')
+        except:
+            pass
+    
+    story = {
+        "user_id": user_id,
+        "user_name": user.get('name', 'Anonymous') if not data.anonymous else 'Anonymous',
+        "anonymous": data.anonymous,
+        "reflection_id": data.reflection_id,
+        "title": data.title or challenge_title or "My Mistake Story",
+        "obstacle": reflection.get('obstacle', ''),
+        "story": reflection.get('story', ''),
+        "lesson": reflection.get('lesson', ''),
+        "response": reflection.get('response', ''),
+        "domain": "",
+        "stage": user.get('stage', 0),
+        "status": "pending",  # pending, approved, rejected
+        "likes": 0,
+        "liked_by": [],
+        "created_at": datetime.now()
+    }
+    
+    # Try to get domain from challenge
+    if reflection.get('challenge_id'):
+        try:
+            challenge = await db.challenges.find_one({"_id": ObjectId(reflection['challenge_id'])})
+            if challenge:
+                story['domain'] = challenge.get('domain', '')
+        except:
+            pass
+    
+    result = await db.stories.insert_one(story)
+    story['_id'] = result.inserted_id
+    return {"story": serialize_doc(story), "message": "Story submitted for review! It'll appear in the feed once approved."}
+
+
+@app.get("/api/stories")
+async def get_stories(user=Depends(get_current_user), skip: int = 0, limit: int = 20):
+    """Get approved stories for the community feed."""
+    cursor = db.stories.find({"status": "approved"}).sort("created_at", -1).skip(skip).limit(limit)
+    stories = await cursor.to_list(limit)
+    total = await db.stories.count_documents({"status": "approved"})
+    
+    # Mark which ones the current user liked
+    user_id = user['id']
+    result = []
+    for s in stories:
+        doc = serialize_doc(s)
+        doc['liked'] = user_id in (s.get('liked_by', []) or [])
+        result.append(doc)
+    
+    return {"stories": result, "total": total}
+
+
+@app.get("/api/stories/mine")
+async def get_my_stories(user=Depends(get_current_user)):
+    """Get current user's submitted stories."""
+    stories = await db.stories.find({"user_id": user['id']}).sort("created_at", -1).to_list(50)
+    return {"stories": [serialize_doc(s) for s in stories]}
+
+
+@app.post("/api/stories/{story_id}/like")
+async def toggle_like_story(story_id: str, user=Depends(get_current_user)):
+    """Toggle like on a story."""
+    user_id = user['id']
+    story = await db.stories.find_one({"_id": ObjectId(story_id)})
+    if not story:
+        raise HTTPException(status_code=404, detail="Story not found")
+    
+    liked_by = story.get('liked_by', []) or []
+    if user_id in liked_by:
+        liked_by.remove(user_id)
+        action = 'unliked'
+    else:
+        liked_by.append(user_id)
+        action = 'liked'
+    
+    await db.stories.update_one(
+        {"_id": ObjectId(story_id)},
+        {"$set": {"liked_by": liked_by, "likes": len(liked_by)}}
+    )
+    return {"action": action, "likes": len(liked_by)}
+
+
+# ============== BUDDY MATCHING ENDPOINTS ==============
+
+@app.post("/api/buddies/request")
+async def create_buddy_request(data: BuddyRequestInput, user=Depends(get_current_user)):
+    """Create a buddy matching request."""
+    user_id = user['id']
+    
+    # Check if user already has a pending request
+    existing = await db.buddy_requests.find_one({"user_id": user_id, "status": "pending"})
+    if existing:
+        raise HTTPException(status_code=400, detail="You already have a pending buddy request")
+    
+    request_doc = {
+        "user_id": user_id,
+        "user_name": user.get('name', 'Unknown'),
+        "stage": user.get('stage', 0),
+        "domain": data.domain or (user.get('domains', ['general'])[0] if user.get('domains') else 'general'),
+        "domains": user.get('domains', []),
+        "message": data.message,
+        "status": "pending",  # pending, matched, cancelled
+        "matched_with": None,
+        "created_at": datetime.now()
+    }
+    result = await db.buddy_requests.insert_one(request_doc)
+    request_doc['_id'] = result.inserted_id
+    
+    # Try auto-matching
+    match = await find_buddy_match(user_id, user.get('stage', 0), request_doc['domain'])
+    if match:
+        # Update both requests
+        await db.buddy_requests.update_one(
+            {"_id": result.inserted_id},
+            {"$set": {"status": "matched", "matched_with": match['user_id']}}
+        )
+        await db.buddy_requests.update_one(
+            {"_id": ObjectId(match['id'])},
+            {"$set": {"status": "matched", "matched_with": user_id}}
+        )
+        # Create connection
+        connection = {
+            "user_1": user_id,
+            "user_1_name": user.get('name', 'Unknown'),
+            "user_2": match['user_id'],
+            "user_2_name": match.get('user_name', 'Unknown'),
+            "type": "buddy",
+            "domain": request_doc['domain'],
+            "status": "active",
+            "created_at": datetime.now()
+        }
+        await db.connections.insert_one(connection)
+        return {"request": serialize_doc(request_doc), "matched": True, "buddy_name": match.get('user_name', 'Someone')}
+    
+    return {"request": serialize_doc(request_doc), "matched": False, "message": "Request submitted! We'll match you when a compatible buddy is found."}
+
+
+async def find_buddy_match(user_id: str, stage: int, domain: str):
+    """Find a matching buddy request."""
+    # Look for someone at same/adjacent stage with matching domain
+    stages_to_match = [stage, max(1, stage - 1), min(4, stage + 1)]
+    match = await db.buddy_requests.find_one({
+        "user_id": {"$ne": user_id},
+        "status": "pending",
+        "stage": {"$in": stages_to_match},
+        "$or": [
+            {"domain": domain},
+            {"domains": {"$in": [domain]}}
+        ]
+    })
+    return serialize_doc(match) if match else None
+
+
+@app.get("/api/buddies/connections")
+async def get_connections(user=Depends(get_current_user)):
+    """Get user's active buddy and mentor connections."""
+    user_id = user['id']
+    connections = await db.connections.find({
+        "$or": [{"user_1": user_id}, {"user_2": user_id}],
+        "status": "active"
+    }).sort("created_at", -1).to_list(50)
+    
+    result = []
+    for c in connections:
+        doc = serialize_doc(c)
+        # Add partner info
+        if c.get('user_1') == user_id:
+            doc['partner_name'] = c.get('user_2_name', 'Unknown')
+            doc['partner_id'] = c.get('user_2')
+        else:
+            doc['partner_name'] = c.get('user_1_name', 'Unknown')
+            doc['partner_id'] = c.get('user_1')
+        result.append(doc)
+    
+    return {"connections": result}
+
+
+@app.get("/api/buddies/request/status")
+async def get_buddy_request_status(user=Depends(get_current_user)):
+    """Get current user's buddy request status."""
+    user_id = user['id']
+    request = await db.buddy_requests.find_one({"user_id": user_id, "status": "pending"})
+    return {"request": serialize_doc(request) if request else None}
+
+
+@app.delete("/api/buddies/request")
+async def cancel_buddy_request(user=Depends(get_current_user)):
+    """Cancel pending buddy request."""
+    user_id = user['id']
+    await db.buddy_requests.update_many(
+        {"user_id": user_id, "status": "pending"},
+        {"$set": {"status": "cancelled"}}
+    )
+    return {"cancelled": True}
+
+
+# ============== MENTORSHIP ENDPOINTS ==============
+
+@app.post("/api/mentorship/offer")
+async def create_mentor_offer(data: MentorOfferInput, user=Depends(get_current_user)):
+    """Create a mentor or mentee offer."""
+    user_id = user['id']
+    offer = {
+        "user_id": user_id,
+        "user_name": user.get('name', 'Unknown'),
+        "stage": user.get('stage', 0),
+        "domain": data.domain,
+        "description": data.description,
+        "role": data.role,  # mentor or mentee
+        "status": "active",  # active, matched, withdrawn
+        "created_at": datetime.now()
+    }
+    result = await db.mentor_offers.insert_one(offer)
+    offer['_id'] = result.inserted_id
+    return {"offer": serialize_doc(offer)}
+
+
+@app.get("/api/mentorship/offers")
+async def get_mentor_offers(user=Depends(get_current_user), role: str = ""):
+    """Browse available mentorship offers."""
+    query = {"status": "active", "user_id": {"$ne": user['id']}}
+    if role:
+        query["role"] = role
+    offers = await db.mentor_offers.find(query).sort("created_at", -1).to_list(50)
+    return {"offers": [serialize_doc(o) for o in offers]}
+
+
+@app.get("/api/mentorship/mine")
+async def get_my_offers(user=Depends(get_current_user)):
+    """Get current user's mentorship offers."""
+    offers = await db.mentor_offers.find({"user_id": user['id']}).sort("created_at", -1).to_list(50)
+    return {"offers": [serialize_doc(o) for o in offers]}
+
+
+@app.delete("/api/mentorship/offer/{offer_id}")
+async def withdraw_offer(offer_id: str, user=Depends(get_current_user)):
+    """Withdraw a mentorship offer."""
+    await db.mentor_offers.update_one(
+        {"_id": ObjectId(offer_id), "user_id": user['id']},
+        {"$set": {"status": "withdrawn"}}
+    )
+    return {"withdrawn": True}
+
+
+# ============== VIDEO LIBRARY ENDPOINTS ==============
+
+@app.get("/api/videos")
+async def get_videos(user=Depends(get_current_user), domain: str = "", stage: int = 0):
+    """Get videos filtered by domain and/or stage."""
+    query = {"active": True}
+    if domain:
+        query["domain"] = domain
+    if stage > 0:
+        query["$or"] = [{"stage": stage}, {"stage": 0}]
+    
+    videos = await db.videos.find(query).sort("created_at", -1).to_list(50)
+    return {"videos": [serialize_doc(v) for v in videos]}
+
+
+@app.get("/api/videos/{video_id}")
+async def get_video(video_id: str, user=Depends(get_current_user)):
+    """Get a single video."""
+    video = await db.videos.find_one({"_id": ObjectId(video_id)})
+    if not video:
+        raise HTTPException(status_code=404, detail="Video not found")
+    
+    # Track view
+    await db.videos.update_one(
+        {"_id": ObjectId(video_id)},
+        {"$inc": {"views": 1}}
+    )
+    
+    return {"video": serialize_doc(video)}
+
+
+# ============== ADMIN PHASE 3 ENDPOINTS ==============
+
+@app.get("/api/admin/stories")
+async def admin_get_stories(user=Depends(get_admin_user), status: str = ""):
+    """Get stories for moderation."""
+    query = {}
+    if status:
+        query["status"] = status
+    stories = await db.stories.find(query).sort("created_at", -1).to_list(100)
+    return {"stories": [serialize_doc(s) for s in stories]}
+
+
+@app.put("/api/admin/stories/{story_id}/moderate")
+async def admin_moderate_story(story_id: str, data: StoryModerationInput, user=Depends(get_admin_user)):
+    """Approve or reject a story."""
+    await db.stories.update_one(
+        {"_id": ObjectId(story_id)},
+        {"$set": {
+            "status": data.status,
+            "moderation_reason": data.reason,
+            "moderated_by": user['id'],
+            "moderated_at": datetime.now()
+        }}
+    )
+    updated = await db.stories.find_one({"_id": ObjectId(story_id)})
+    return {"story": serialize_doc(updated)}
+
+
+@app.get("/api/admin/buddy-requests")
+async def admin_get_buddy_requests(user=Depends(get_admin_user)):
+    """Get all buddy requests."""
+    requests = await db.buddy_requests.find().sort("created_at", -1).to_list(100)
+    return {"requests": [serialize_doc(r) for r in requests]}
+
+
+@app.get("/api/admin/connections")
+async def admin_get_connections(user=Depends(get_admin_user)):
+    """Get all connections (buddies + mentors)."""
+    connections = await db.connections.find().sort("created_at", -1).to_list(100)
+    return {"connections": [serialize_doc(c) for c in connections]}
+
+
+@app.post("/api/admin/mentor-match")
+async def admin_create_mentor_match(data: MentorMatchInput, user=Depends(get_admin_user)):
+    """Admin manually matches a mentor and mentee."""
+    # Get user names
+    mentor = await db.users.find_one({"_id": ObjectId(data.mentor_id)})
+    mentee = await db.users.find_one({"_id": ObjectId(data.mentee_id)})
+    if not mentor or not mentee:
+        raise HTTPException(status_code=404, detail="User not found")
+    
+    connection = {
+        "user_1": data.mentor_id,
+        "user_1_name": mentor.get('name', 'Unknown'),
+        "user_2": data.mentee_id,
+        "user_2_name": mentee.get('name', 'Unknown'),
+        "type": "mentorship",
+        "domain": data.domain,
+        "note": data.note,
+        "status": "active",
+        "created_by_admin": user['id'],
+        "created_at": datetime.now()
+    }
+    result = await db.connections.insert_one(connection)
+    connection['_id'] = result.inserted_id
+    return {"connection": serialize_doc(connection)}
+
+
+@app.get("/api/admin/mentor-offers")
+async def admin_get_mentor_offers(user=Depends(get_admin_user)):
+    """Get all mentorship offers."""
+    offers = await db.mentor_offers.find().sort("created_at", -1).to_list(100)
+    return {"offers": [serialize_doc(o) for o in offers]}
+
+
+# Admin Video CRUD
+@app.get("/api/admin/videos")
+async def admin_get_videos(user=Depends(get_admin_user)):
+    """Get all videos for admin management."""
+    videos = await db.videos.find().sort("created_at", -1).to_list(100)
+    return {"videos": [serialize_doc(v) for v in videos]}
+
+
+@app.post("/api/admin/videos")
+async def admin_create_video(data: VideoInput, user=Depends(get_admin_user)):
+    """Create a new video entry."""
+    video = {
+        "title": data.title,
+        "description": data.description,
+        "url": data.url,
+        "domain": data.domain,
+        "stage": data.stage,
+        "thumbnail_url": data.thumbnail_url,
+        "active": True,
+        "views": 0,
+        "created_by": user['id'],
+        "created_at": datetime.now()
+    }
+    result = await db.videos.insert_one(video)
+    video['_id'] = result.inserted_id
+    return {"video": serialize_doc(video)}
+
+
+@app.put("/api/admin/videos/{video_id}")
+async def admin_update_video(video_id: str, data: VideoInput, user=Depends(get_admin_user)):
+    """Update a video entry."""
+    await db.videos.update_one(
+        {"_id": ObjectId(video_id)},
+        {"$set": {
+            "title": data.title,
+            "description": data.description,
+            "url": data.url,
+            "domain": data.domain,
+            "stage": data.stage,
+            "thumbnail_url": data.thumbnail_url
+        }}
+    )
+    updated = await db.videos.find_one({"_id": ObjectId(video_id)})
+    return {"video": serialize_doc(updated)}
+
+
+@app.delete("/api/admin/videos/{video_id}")
+async def admin_delete_video(video_id: str, user=Depends(get_admin_user)):
+    """Delete a video."""
+    await db.videos.delete_one({"_id": ObjectId(video_id)})
+    return {"deleted": True}
+
+
+# Update admin stats to include Phase 3 data
+@app.get("/api/admin/stats/extended")
+async def admin_extended_stats(user=Depends(get_admin_user)):
+    """Get extended stats including Phase 3 features."""
+    total_stories = await db.stories.count_documents({})
+    pending_stories = await db.stories.count_documents({"status": "pending"})
+    approved_stories = await db.stories.count_documents({"status": "approved"})
+    total_connections = await db.connections.count_documents({"status": "active"})
+    buddy_connections = await db.connections.count_documents({"type": "buddy", "status": "active"})
+    mentor_connections = await db.connections.count_documents({"type": "mentorship", "status": "active"})
+    pending_buddy_requests = await db.buddy_requests.count_documents({"status": "pending"})
+    total_videos = await db.videos.count_documents({"active": True})
+    total_mentor_offers = await db.mentor_offers.count_documents({"status": "active"})
+    
+    return {
+        "stories": {
+            "total": total_stories,
+            "pending": pending_stories,
+            "approved": approved_stories
+        },
+        "connections": {
+            "total": total_connections,
+            "buddies": buddy_connections,
+            "mentorships": mentor_connections
+        },
+        "buddy_requests_pending": pending_buddy_requests,
+        "videos": total_videos,
+        "mentor_offers": total_mentor_offers
+    }
+
+
 # ============== HEALTH ==============
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "app": "10 Million Mistakes", "version": "1.0.0"}
+    return {"status": "healthy", "app": "10 Million Mistakes", "version": "2.0.0"}
