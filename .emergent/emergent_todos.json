@@ -1,26 +1,14 @@
 [
   {
-    "content": "Phase 4.1: Profile/Settings page - change name, password, domains, retake quiz, delete account",
+    "content": "Fix React Hook dependency warning in VideosPage.js",
     "status": "completed"
   },
   {
-    "content": "Phase 4.2: Security hardening - rate limiting, input validation, DB indexes, error handling",
+    "content": "Verify frontend compiles without errors",
     "status": "completed"
   },
   {
-    "content": "Phase 4.3: UI/UX polish - user logout, error boundaries, settings gear icon, member stats",
+    "content": "Take screenshots of key app pages for user testing handoff",
     "status": "completed"
-  },
-  {
-    "content": "Phase 4.4: Admin power tools - search/filter users, story status filter",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 4.5: Production backend - proper error responses, logging, session management",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 4: End to end testing using Testing Agent",
-    "status": "in_progress"
   }
 ]

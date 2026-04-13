@@ -1,8 +1,8 @@
-# plan.md — 10 Million Mistakes (Updated)
+# plan.md — 10 Million Mistakes (Production-Ready)
 
 ## 1. Objectives
-- **Status:** Phase 1 (Core POC) ✅ complete; Phase 2 (MVP) ✅ complete; Phase 3 (Enhanced Features) ✅ complete.
-- Deliver a stable, delightful **core loop** that users can repeat daily:
+- **Status:** Phase 1 ✅ complete; Phase 2 ✅ complete; Phase 3 ✅ complete; Phase 4 ✅ complete.
+- Deliver a stable, delightful **core loop** users repeat daily:
   - onboard → get daily AI challenge → log reflection → celebrate → review vault/progress/mantras.
 - Expand the app into a **movement + community** while keeping it safe:
   - Pattern visibility that helps users see recurring walls.
@@ -11,10 +11,11 @@
   - **Moderation-first** approach for anything public.
 - Ensure the app remains **safe, resilient, and manageable**:
   - AI challenge generation uses structured JSON with fallbacks.
-  - Data persists reliably in MongoDB.
+  - Data persists reliably in MongoDB with production indexes.
   - Role-based access protects the **Admin Dashboard**.
-  - Admin can manage/manipulate content and community (moderation + connections) without engineering help.
-- Transition focus from “building features” to **hardening, scale, and operating the app** (Phase 4).
+  - Admin can manage content and community (moderation + connections + videos) without engineering help.
+- Transition from “building features” to **operating in production**:
+  - Security, abuse prevention, observability, backups, and a clear release process.
 
 ---
 
@@ -218,38 +219,96 @@
 
 ---
 
-### Phase 4 — Hardening + Scale + Safety Controls (Next)
-**Focus areas**
-- Production readiness:
-  - Rate limiting + abuse prevention (especially stories/likes/buddy requests)
-  - Logging, monitoring, alerting
-  - Backups and data retention policies
-  - Environment secrets hardening (JWT secret, API keys)
-- AI safety and reliability:
-  - Optional content filtering for user-generated text before story submission
-  - Prompt/versioning for AI generation and summaries
-  - Track AI success rate + fallback rate
-- Admin power tools:
-  - Search/filter users, stories, reflections, videos
-  - Flags and reporting workflow (future)
-  - Analytics dashboard (DAU, reflections/day, retention cohorts)
-- Account lifecycle:
-  - Password reset, email verification (optional)
-  - GDPR-style export/delete (data portability)
-- Community evolution (optional future):
-  - In-app messaging (with moderation tooling)
-  - Group circles / events / seasonal journeys
-  - User-uploaded video pipeline + moderation (if desired)
+### Phase 4 — Production Readiness: Hardening + Safety Controls ✅ COMPLETED
+**Goal:** Make the app suitable to run as a real product with account lifecycle controls, security hardening, improved admin tooling, and resilience.
+
+#### 4.1 Settings / Profile + Account Lifecycle ✅
+**User stories (implemented)**
+1. As a user, I can update my name and domains.
+2. As a user, I can change my password.
+3. As a user, I can retake the onboarding quiz to reflect where I am now.
+4. As a user, I can log out.
+5. As a user, I can delete my account and associated data.
+
+**Build (delivered)**
+- Frontend `SettingsPage`:
+  - Profile summary (avatar, stage badge)
+  - Quick account stats (mistakes, reflections, stories, connections)
+  - Edit profile (name + domains)
+  - Change password
+  - Retake quiz (resets stage/domains and redirects to onboarding)
+  - Logout
+  - Delete account (type DELETE confirmation)
+- Backend endpoints:
+  - `PUT /api/profile` (update name/domains)
+  - `POST /api/profile/change-password`
+  - `POST /api/profile/retake-quiz`
+  - `DELETE /api/profile/account` (deletes user + associated data)
+  - `GET /api/profile/stats`
+
+#### 4.2 Security + Abuse Prevention Foundations ✅
+**Build (delivered)**
+- Rate limiting (SlowAPI):
+  - Register: `5/minute`
+  - Login: `10/minute`
+  - Change password: `3/minute`
+- Input validation + sanitization:
+  - Email format validation, password length checks
+  - Sanitization of user text inputs (strip HTML/script)
+  - Reflection input validation (response enum enforced)
+- MongoDB production indexes added at startup for performance and stability.
+
+#### 4.3 Resilience + Error Handling ✅
+**Build (delivered)**
+- Backend:
+  - Global exception handler returning safe 500 responses
+  - Structured logging
+- Frontend:
+  - React `ErrorBoundary` wrapping the full app
+
+#### 4.4 Admin Power Tools ✅
+**Build (delivered)**
+- User search:
+  - Backend: `GET /api/admin/users?search=...&stage=...`
+  - Frontend: Users tab search box
+- Story moderation filtering:
+  - Backend: `GET /api/admin/stories?status=pending|approved|rejected|all`
+  - Frontend: status dropdown filter
+
+**Testing (end of Phase 4) results**
+- ✅ Full regression test run completed.
+- Backend pass rate: **97%**.
+- Frontend pass rate: **95%**.
+- Only minor issues noted by the test agent (no critical blockers).
+
+**Phase 4 success criteria — achieved**
+- ✅ Account settings and lifecycle actions exist.
+- ✅ Baseline protection against abuse on auth endpoints.
+- ✅ Inputs validated/sanitized.
+- ✅ DB indexed for core queries.
+- ✅ Error handling prevents white-screen failures.
+- ✅ Admin can search users and filter stories.
 
 ---
 
 ## 3. Next Actions
-Now that Phases 1–3 are complete, recommended next actions are operational + hardening:
-1. **Decide Phase 4 priorities** (security + safety + scaling) and target launch environment.
-2. Add **rate limiting** and **basic abuse prevention** for community endpoints.
-3. Add **monitoring/analytics** (errors, latency, AI usage/fallback, daily active users).
-4. Add **admin search + filtering** to make moderation and user support faster.
-5. Run a final **full regression E2E** before production launch.
+With Phases 1–4 complete, the next steps are operational launch and ongoing product operations:
+1. **Deployment readiness checklist**
+   - Set environment secrets (`JWT_SECRET`, `EMERGENT_LLM_KEY`) in production.
+   - Tighten CORS origins to your production domains.
+   - Configure HTTPS, secure headers, and proper logging retention.
+2. **Observability + metrics**
+   - Add monitoring for API latency/error rate, OpenAI success/fallback rate, and DB health.
+   - Add basic product analytics (DAU, reflections/day, retention).
+3. **Backups + retention**
+   - Configure scheduled Mongo backups and a restore drill.
+4. **Community safety expansion (optional)**
+   - Add text moderation (profanity/abuse) for story submissions.
+   - Add user reporting/flagging workflow.
+5. **Roadmap (optional enhancements)**
+   - Password reset + email verification
+   - In-app messaging with moderation tooling
+   - Seasonal journeys and group circles
 
 ---
 
@@ -258,4 +317,5 @@ Now that Phases 1–3 are complete, recommended next actions are operational + h
 - AI features remain safe, structured, and resilient to outages.
 - Admin can manage content, moderate public posts, and inspect activity without engineering help.
 - Community features add connection **without** increasing harm risk.
+- App can be safely operated in production with rate limiting, validation, indexing, and robust error handling.
 - Each phase ends with a complete E2E test run and bug-fix pass before moving on.

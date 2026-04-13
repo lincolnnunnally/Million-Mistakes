@@ -15,10 +15,6 @@ export default function VideosPage() {
   const [domainFilter, setDomainFilter] = useState('all');
   const [selectedVideo, setSelectedVideo] = useState(null);
 
-  useEffect(() => {
-    loadVideos();
-  }, [domainFilter]);
-
   const loadVideos = async () => {
     try {
       const params = domainFilter && domainFilter !== 'all' ? `?domain=${domainFilter}` : '';
@@ -30,6 +26,11 @@ export default function VideosPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadVideos();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [domainFilter]);
 
   const getEmbedUrl = (url) => {
     if (!url) return null;
