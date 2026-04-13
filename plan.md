@@ -1,14 +1,20 @@
 # plan.md — 10 Million Mistakes (Updated)
 
 ## 1. Objectives
-- **Status:** Phase 1 (Core POC) ✅ complete; Phase 2 (MVP) ✅ complete.
+- **Status:** Phase 1 (Core POC) ✅ complete; Phase 2 (MVP) ✅ complete; Phase 3 (Enhanced Features) ✅ complete.
 - Deliver a stable, delightful **core loop** that users can repeat daily:
   - onboard → get daily AI challenge → log reflection → celebrate → review vault/progress/mantras.
-- Ensure the app is **safe, resilient, and manageable**:
+- Expand the app into a **movement + community** while keeping it safe:
+  - Pattern visibility that helps users see recurring walls.
+  - Community sharing and connection (Stories + Buddies + Mentorship).
+  - Curated video library for learning.
+  - **Moderation-first** approach for anything public.
+- Ensure the app remains **safe, resilient, and manageable**:
   - AI challenge generation uses structured JSON with fallbacks.
   - Data persists reliably in MongoDB.
   - Role-based access protects the **Admin Dashboard**.
-- Prepare for **Phase 3 growth features** (pattern insights, stories feed, buddy matching, video content, mentorship) without destabilizing the MVP.
+  - Admin can manage/manipulate content and community (moderation + connections) without engineering help.
+- Transition focus from “building features” to **hardening, scale, and operating the app** (Phase 4).
 
 ---
 
@@ -95,7 +101,7 @@
 - ✅ E2E test run completed.
 - Backend pass rate: **96%**.
 - Frontend pass rate: **95%**.
-- Only minor issues noted (e.g., small UI copy mismatch).
+- Only minor issues noted.
 
 **Success criteria (Phase 2) results**
 - ✅ Daily challenge always available (AI or fallback).
@@ -104,98 +110,152 @@
 
 ---
 
-### Phase 3 — Enhanced Features: Patterns, Stories, Buddies, Video, Mentorship (Next) 🔜
+### Phase 3 — Enhanced Features: Patterns, Stories, Buddies, Video, Mentorship ✅ COMPLETED
 **Goal:** Expand from solo habit + journaling into deeper pattern visibility + community connection + content library, while preserving safety and moderation.
 
-#### 3.1 Pattern Discovery Dashboard
-**User stories**
-1. As a user, I want weekly insights so I can see repeating walls (fear of judgment, avoidance, etc.).
-2. As a user, I want escalating “Pattern Breaker” suggestions that respect my stage.
+#### 3.1 Pattern Discovery Dashboard ✅
+**User stories (implemented)**
+1. As a user, I want insights so I can see repeating walls (fear of judgment, avoidance, etc.).
+2. As a user, I want a “Pattern Breaker” suggestion that helps me take a next step.
 
-**Build**
-- Start with rules-based tagging from reflections + challenges:
-  - Tag obstacles (judgment, rejection, perfectionism, avoidance) from user input and/or lightweight AI classification.
-- Weekly summary endpoint + UI panel:
-  - “Top 2 patterns this week”
-  - “Domains with most attempts”
-  - “Suggested next micro-challenge”
-- Timeline visualization:
-  - Mistakes/day vs streak vs “growth moments” (based on lesson sentiment/keywords).
+**Build (delivered)**
+- Rules-based pattern tagging across reflections (8 obstacle themes):
+  - fear_of_judgment, perfectionism, avoidance, fear_of_rejection, self_doubt, people_pleasing, comfort_zone, overthinking.
+- Insights returned by `GET /api/patterns`:
+  - Top patterns list (counts + percentage)
+  - Courage rate (pushed-through + tried-and-failed)
+  - Trend analysis (improving/steady/starting)
+  - Pattern-breaker suggestion + micro-action
+  - Optional AI weekly summary (OpenAI) when enough data exists
+- Frontend `PatternsPage`:
+  - Empty state (“needs data”)
+  - Insight cards + recurring walls + pattern breaker
 
-**Testing**
-- Seed reflections → verify weekly insights match the data.
+**Testing results**
+- ✅ Phase 3 test run: Backend **98%**, Frontend **95%**.
 
-#### 3.2 Mistake Stories Feed (Optional Anonymity + Moderation)
-**User stories**
+#### 3.2 Mistake Stories Feed (Optional Anonymity + Moderation) ✅
+**User stories (implemented)**
 1. As a user, I can share a mistake story (optionally anonymous) to inspire others.
 2. As an admin, I can moderate and approve/deny posts.
+3. As a user, I can like stories in the community feed.
 
-**Build**
-- New model: `StoryPost` sourced from a reflection.
-- Workflow:
-  - User chooses “Share to Stories” after reflection.
-  - Post enters moderation queue.
-  - Admin approves → visible in feed.
-- Community safety:
-  - Reporting + basic rate limits.
+**Build (delivered)**
+- Stories workflow:
+  - Share from **Victory Vault** via “Share” button (dialog includes title + anonymous toggle)
+  - Story is created as `pending` and requires admin approval
+- Backend endpoints:
+  - `POST /api/stories` (creates pending story from reflection)
+  - `GET /api/stories` (approved stories feed)
+  - `GET /api/stories/mine` (user’s submissions + statuses)
+  - `POST /api/stories/{id}/like` (like/unlike)
+- Admin moderation:
+  - `GET /api/admin/stories`
+  - `PUT /api/admin/stories/{id}/moderate` (approve/reject)
+- Frontend `StoriesPage`:
+  - Community Feed tab + My Stories tab
 
-#### 3.3 Mistake Buddies + Mentorship Hub (MVP)
-**User stories**
+**Safety notes**
+- ✅ Nothing appears publicly without admin approval.
+
+#### 3.3 Mistake Buddies + Mentorship Hub ✅
+**User stories (implemented)**
 1. As a user, I can request a buddy match by stage/domain.
-2. As a user, I can request a mentor or offer mentorship.
-3. As an admin, I can manually connect pairs and manage safety.
+2. As a user, I can create mentor/mentee offers and browse offers.
+3. As an admin, I can manually connect pairs for mentorship.
 
-**Build**
-- Matching logic:
-  - Stage + domain + activity level.
-  - Manual override/curation in admin.
-- Connection objects:
-  - `BuddyRequest`, `MentorshipRequest`, `Connection`.
-- Messaging (deferred option):
-  - Start with request/accept + “check-in prompts”; add chat later.
+**Build (delivered)**
+- Buddy matching:
+  - `POST /api/buddies/request` (creates request; attempts auto-match)
+  - `GET /api/buddies/request/status`, `DELETE /api/buddies/request`
+  - `GET /api/buddies/connections`
+  - Connection objects stored as `connections` (type: buddy/mentorship)
+- Mentorship offers:
+  - `POST /api/mentorship/offer`
+  - `GET /api/mentorship/offers` (browse)
+  - `GET /api/mentorship/mine`, `DELETE /api/mentorship/offer/{id}`
+- Admin community management:
+  - `GET /api/admin/buddy-requests`
+  - `GET /api/admin/connections`
+  - `GET /api/admin/mentor-offers`
+  - `POST /api/admin/mentor-match` (manual match)
+- Frontend `BuddiesPage`:
+  - Tabs: Connections, Find a Buddy, Mentorship
 
-#### 3.4 Video Content Library + Moderation
-**User stories**
+**Notes / scope decisions**
+- Messaging/chat is intentionally deferred; current model focuses on matching + admin oversight.
+
+#### 3.4 Video Content Library ✅
+**User stories (implemented)**
 1. As a user, I can browse and watch videos curated for my stage/domains.
 2. As an admin, I can add/edit/remove video entries.
-3. As an admin, I can moderate user-posted videos (future scope).
 
-**Build**
-- MVP: admin-managed library of external video links (YouTube/Vimeo) + metadata.
-- Phase 3.5+: user uploads + moderation pipeline.
+**Build (delivered)**
+- User video library:
+  - `GET /api/videos` (filters: domain, stage)
+  - `GET /api/videos/{id}` (increments views)
+  - Frontend `VideosPage` with:
+    - Domain filter
+    - Embedded playback (YouTube/Vimeo parsing)
+    - Empty state when none exist
+- Admin video management:
+  - `GET /api/admin/videos`
+  - `POST /api/admin/videos`
+  - `PUT /api/admin/videos/{id}`
+  - `DELETE /api/admin/videos/{id}`
 
-**Phase 3 success criteria**
-- Weekly insights generate reliably and feel aligned with user reflections.
-- Stories feed is safe: nothing appears without moderation.
-- Buddy/mentor matching works with clear consent and admin oversight.
-- Video library is manageable via admin dashboard.
+#### Admin Dashboard Enhancements ✅
+- Upgraded to **7 tabs**:
+  - Overview, Users, Mantras, Reflections, Stories, Videos, Community
+- Extended stats endpoint:
+  - `GET /api/admin/stats/extended` (stories pending/approved, connections, buddy requests, videos, mentor offers)
+
+**Phase 3 success criteria — achieved**
+- ✅ Pattern insights generate reliably and feel aligned with reflections.
+- ✅ Stories feed is moderation-first.
+- ✅ Buddy/mentor matching works with admin oversight.
+- ✅ Video library is manageable via admin dashboard.
 
 ---
 
-### Phase 4 — Hardening + Scale + Safety Controls (Future)
+### Phase 4 — Hardening + Scale + Safety Controls (Next)
 **Focus areas**
 - Production readiness:
-  - Rate limiting, logging, monitoring, backups.
-  - Improved AI safety/moderation and deterministic outputs.
+  - Rate limiting + abuse prevention (especially stories/likes/buddy requests)
+  - Logging, monitoring, alerting
+  - Backups and data retention policies
+  - Environment secrets hardening (JWT secret, API keys)
+- AI safety and reliability:
+  - Optional content filtering for user-generated text before story submission
+  - Prompt/versioning for AI generation and summaries
+  - Track AI success rate + fallback rate
 - Admin power tools:
-  - User search, flags, analytics (DAU, AI success rate, reflections/day).
-- Data export:
-  - User export of reflections/vault.
-- Optional: password reset, email verification.
+  - Search/filter users, stories, reflections, videos
+  - Flags and reporting workflow (future)
+  - Analytics dashboard (DAU, reflections/day, retention cohorts)
+- Account lifecycle:
+  - Password reset, email verification (optional)
+  - GDPR-style export/delete (data portability)
+- Community evolution (optional future):
+  - In-app messaging (with moderation tooling)
+  - Group circles / events / seasonal journeys
+  - User-uploaded video pipeline + moderation (if desired)
 
 ---
 
 ## 3. Next Actions
-1. **Phase 3 kickoff decision**: confirm which Phase 3 module to build first (recommended order: Patterns → Stories → Buddies/Mentorship → Video).
-2. Add new DB models + endpoints for the first Phase 3 module.
-3. Implement admin moderation queues for any user-generated/community content.
-4. Run E2E tests after each Phase 3 module ships.
+Now that Phases 1–3 are complete, recommended next actions are operational + hardening:
+1. **Decide Phase 4 priorities** (security + safety + scaling) and target launch environment.
+2. Add **rate limiting** and **basic abuse prevention** for community endpoints.
+3. Add **monitoring/analytics** (errors, latency, AI usage/fallback, daily active users).
+4. Add **admin search + filtering** to make moderation and user support faster.
+5. Run a final **full regression E2E** before production launch.
 
 ---
 
 ## 4. Success Criteria (Overall)
 - Core loop delight remains stable and repeatable daily.
 - AI features remain safe, structured, and resilient to outages.
-- Admin can manage content and moderate/inspect activity without engineering help.
-- Phase 3 adds community + insights **without** increasing user harm risk.
+- Admin can manage content, moderate public posts, and inspect activity without engineering help.
+- Community features add connection **without** increasing harm risk.
 - Each phase ends with a complete E2E test run and bug-fix pass before moving on.
