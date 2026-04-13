@@ -1,34 +1,26 @@
 [
   {
-    "content": "Phase 3.1: Pattern Discovery Dashboard - Backend endpoints + AI insights",
+    "content": "Phase 4.1: Profile/Settings page - change name, password, domains, retake quiz, delete account",
     "status": "completed"
   },
   {
-    "content": "Phase 3.2: Mistake Stories Feed - Share, moderate, browse",
+    "content": "Phase 4.2: Security hardening - rate limiting, input validation, DB indexes, error handling",
     "status": "completed"
   },
   {
-    "content": "Phase 3.3: Mistake Buddies + Mentorship Hub - Matching, requests, connections",
+    "content": "Phase 4.3: UI/UX polish - user logout, error boundaries, settings gear icon, member stats",
     "status": "completed"
   },
   {
-    "content": "Phase 3.4: Video Content Library - Admin CRUD + user browsing",
+    "content": "Phase 4.4: Admin power tools - search/filter users, story status filter",
     "status": "completed"
   },
   {
-    "content": "Phase 3: Frontend - All new pages & components",
+    "content": "Phase 4.5: Production backend - proper error responses, logging, session management",
     "status": "completed"
   },
   {
-    "content": "Phase 3: Admin Dashboard enhancements (moderation queue, buddy/mentor management, video management)",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 3: All user stories covered in development and testing",
-    "status": "completed"
-  },
-  {
-    "content": "Phase 3: End to end testing using Testing Agent",
-    "status": "completed"
+    "content": "Phase 4: End to end testing using Testing Agent",
+    "status": "in_progress"
   }
 ]

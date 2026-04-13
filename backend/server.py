@@ -1,9 +1,11 @@
-"""10 Million Mistakes - Backend Server"""
+"""10 Million Mistakes - Backend Server (Production)"""
 import os
+import re
 import json
 import random
 import hashlib
 import secrets
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
 from contextlib import asynccontextmanager
@@ -15,9 +17,13 @@ load_dotenv()
 
 from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel, Field, field_validator
 from motor.motor_asyncio import AsyncIOMotorClient
 from bson import ObjectId
+from slowapi import Limiter, _rate_limit_exceeded_handler
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
 
 from ai_service import generate_challenge, get_fallback_challenge
 from pattern_service import generate_rules_based_insights, generate_ai_weekly_summary
@@ -26,25 +32,55 @@ from seed_data import (
     LEVELS, ENCOURAGEMENTS
 )
 
+# Logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("10mm")
+
 # Config
 MONGO_URL = os.environ.get('MONGO_URL', 'mongodb://localhost:27017')
 DB_NAME = 'ten_million_mistakes'
 JWT_SECRET = os.environ.get('JWT_SECRET', 'tmm-secret-key-change-in-production-2024')
 JWT_ALGORITHM = 'HS256'
 
+# Rate limiter
+limiter = Limiter(key_func=get_remote_address)
+
 # DB client
 client = AsyncIOMotorClient(MONGO_URL)
 db = client[DB_NAME]
 
 
+async def create_indexes():
+    """Create database indexes for production performance."""
+    try:
+        await db.users.create_index("email", unique=True)
+        await db.reflections.create_index([("user_id", 1), ("created_at", -1)])
+        await db.reflections.create_index("date")
+        await db.challenges.create_index([("user_id", 1), ("date", 1)])
+        await db.stories.create_index([("status", 1), ("created_at", -1)])
+        await db.stories.create_index("user_id")
+        await db.buddy_requests.create_index([("status", 1), ("stage", 1)])
+        await db.connections.create_index([("user_1", 1), ("status", 1)])
+        await db.connections.create_index([("user_2", 1), ("status", 1)])
+        await db.mentor_offers.create_index([("status", 1), ("role", 1)])
+        await db.videos.create_index([("active", 1), ("domain", 1)])
+        await db.mantras.create_index("active")
+        logger.info("Database indexes created successfully")
+    except Exception as e:
+        logger.error(f"Index creation error: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: seed data
+    # Startup: seed data + indexes
     await seed_initial_data()
+    await create_indexes()
     yield
     client.close()
 
 app = FastAPI(title="10 Million Mistakes API", lifespan=lifespan)
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,
@@ -53,6 +89,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+# Global error handler
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    logger.error(f"Unhandled error: {type(exc).__name__}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={"detail": "An internal error occurred. Please try again."}
+    )
 
 
 # ============== HELPERS ==============
@@ -177,14 +223,71 @@ async def seed_initial_data():
 
 # ============== PYDANTIC MODELS ==============
 
+def sanitize_text(text: str, max_len: int = 2000) -> str:
+    """Sanitize user input text."""
+    if not text:
+        return text
+    text = text.strip()[:max_len]
+    # Remove potential script tags
+    text = re.sub(r'<script[^>]*>.*?</script>', '', text, flags=re.IGNORECASE | re.DOTALL)
+    text = re.sub(r'<[^>]+>', '', text)  # Strip remaining HTML
+    return text
+
 class RegisterInput(BaseModel):
     email: str
     password: str
     name: str
 
+    @field_validator('email')
+    @classmethod
+    def validate_email(cls, v):
+        v = v.strip().lower()
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', v):
+            raise ValueError('Invalid email format')
+        return v
+
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v):
+        if len(v) < 6:
+            raise ValueError('Password must be at least 6 characters')
+        if len(v) > 128:
+            raise ValueError('Password too long')
+        return v
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v):
+        v = sanitize_text(v, 100)
+        if len(v) < 1:
+            raise ValueError('Name is required')
+        return v
+
 class LoginInput(BaseModel):
     email: str
     password: str
+
+class ChangePasswordInput(BaseModel):
+    current_password: str
+    new_password: str
+
+    @field_validator('new_password')
+    @classmethod
+    def validate_new_password(cls, v):
+        if len(v) < 6:
+            raise ValueError('New password must be at least 6 characters')
+        if len(v) > 128:
+            raise ValueError('Password too long')
+        return v
+
+class UpdateProfileInput(BaseModel):
+    name: str = ""
+    domains: list = []
+
+    @field_validator('name')
+    @classmethod
+    def validate_name(cls, v):
+        return sanitize_text(v, 100) if v else v
 
 class OnboardingInput(BaseModel):
     quiz_answers: list  # list of {question_id, selected_option_index}
@@ -196,6 +299,19 @@ class ReflectionInput(BaseModel):
     response: str  # Q2: did you run, push through, or try and fail?
     story: str  # Q3: what actually happened?
     lesson: str  # Q4: what did you learn?
+
+    @field_validator('obstacle', 'story', 'lesson')
+    @classmethod
+    def validate_text_fields(cls, v):
+        return sanitize_text(v, 2000)
+
+    @field_validator('response')
+    @classmethod
+    def validate_response(cls, v):
+        valid = ['pushed_through', 'tried_and_failed', 'ran']
+        if v not in valid:
+            raise ValueError(f'Response must be one of: {valid}')
+        return v
 
 class MantraInput(BaseModel):
     text: str
@@ -240,7 +356,8 @@ class VideoInput(BaseModel):
 # ============== AUTH ENDPOINTS ==============
 
 @app.post("/api/auth/register")
-async def register(data: RegisterInput):
+@limiter.limit("5/minute")
+async def register(request: Request, data: RegisterInput):
     existing = await db.users.find_one({"email": data.email.lower()})
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
@@ -262,11 +379,13 @@ async def register(data: RegisterInput):
     user['_id'] = result.inserted_id
     safe_user = serialize_doc(user)
     safe_user.pop('password', None)
+    logger.info(f"New user registered: {data.email}")
     return {"token": token, "user": safe_user}
 
 
 @app.post("/api/auth/login")
-async def login(data: LoginInput):
+@limiter.limit("10/minute")
+async def login(request: Request, data: LoginInput):
     user = await db.users.find_one({"email": data.email.lower()})
     if not user:
         raise HTTPException(status_code=401, detail="Invalid email or password")
@@ -282,6 +401,97 @@ async def login(data: LoginInput):
 async def get_me(user=Depends(get_current_user)):
     user.pop('password', None)
     return {"user": user}
+
+
+# ============== PROFILE / SETTINGS ENDPOINTS ==============
+
+@app.put("/api/profile")
+async def update_profile(data: UpdateProfileInput, user=Depends(get_current_user)):
+    """Update user profile (name, domains)."""
+    updates = {}
+    if data.name and data.name.strip():
+        updates["name"] = data.name.strip()
+    if data.domains:
+        valid_domains = [d['id'] for d in DOMAINS]
+        updates["domains"] = [d for d in data.domains if d in valid_domains]
+    if not updates:
+        raise HTTPException(status_code=400, detail="No valid updates provided")
+    await db.users.update_one({"_id": ObjectId(user['id'])}, {"$set": updates})
+    updated = await db.users.find_one({"_id": ObjectId(user['id'])})
+    result = serialize_doc(updated)
+    result.pop('password', None)
+    return {"user": result}
+
+
+@app.post("/api/profile/change-password")
+@limiter.limit("3/minute")
+async def change_password(request: Request, data: ChangePasswordInput, user=Depends(get_current_user)):
+    """Change user password."""
+    # Get user with password
+    user_doc = await db.users.find_one({"_id": ObjectId(user['id'])})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not bcrypt.checkpw(data.current_password.encode('utf-8'), user_doc['password'].encode('utf-8')):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    new_hashed = bcrypt.hashpw(data.new_password.encode('utf-8'), bcrypt.gensalt())
+    await db.users.update_one(
+        {"_id": ObjectId(user['id'])},
+        {"$set": {"password": new_hashed.decode('utf-8')}}
+    )
+    logger.info(f"Password changed for user: {user['id']}")
+    return {"message": "Password changed successfully"}
+
+
+@app.post("/api/profile/retake-quiz")
+async def retake_quiz(user=Depends(get_current_user)):
+    """Reset onboarding to retake quiz."""
+    await db.users.update_one(
+        {"_id": ObjectId(user['id'])},
+        {"$set": {"onboarded": False, "stage": None, "domains": []}}
+    )
+    return {"message": "Quiz reset. You can now retake the onboarding quiz."}
+
+
+@app.delete("/api/profile/account")
+async def delete_account(user=Depends(get_current_user)):
+    """Delete user account and all associated data."""
+    user_id = user['id']
+    # Delete all user data
+    await db.reflections.delete_many({"user_id": user_id})
+    await db.challenges.delete_many({"user_id": user_id})
+    await db.stories.delete_many({"user_id": user_id})
+    await db.buddy_requests.delete_many({"user_id": user_id})
+    await db.mentor_offers.delete_many({"user_id": user_id})
+    await db.connections.delete_many({"$or": [{"user_1": user_id}, {"user_2": user_id}]})
+    await db.users.delete_one({"_id": ObjectId(user_id)})
+    logger.info(f"Account deleted: {user_id}")
+    return {"message": "Account and all associated data deleted."}
+
+
+@app.get("/api/profile/stats")
+async def get_profile_stats(user=Depends(get_current_user)):
+    """Get user profile stats summary."""
+    user_id = user['id']
+    total_reflections = await db.reflections.count_documents({"user_id": user_id})
+    total_challenges = await db.challenges.count_documents({"user_id": user_id})
+    total_stories = await db.stories.count_documents({"user_id": user_id})
+    connections_count = await db.connections.count_documents({
+        "$or": [{"user_1": user_id}, {"user_2": user_id}],
+        "status": "active"
+    })
+    
+    # Get member since
+    user_doc = await db.users.find_one({"_id": ObjectId(user_id)})
+    member_since = user_doc.get('created_at', datetime.now()) if user_doc else datetime.now()
+    
+    return {
+        "total_reflections": total_reflections,
+        "total_challenges": total_challenges,
+        "total_stories": total_stories,
+        "connections": connections_count,
+        "member_since": member_since.isoformat() if isinstance(member_since, datetime) else str(member_since),
+        "total_mistakes": user_doc.get('total_mistakes', 0) if user_doc else 0
+    }
 
 
 # ============== ONBOARDING ENDPOINTS ==============
@@ -625,10 +835,18 @@ async def admin_stats(user=Depends(get_admin_user)):
 
 
 @app.get("/api/admin/users")
-async def admin_users(user=Depends(get_admin_user), skip: int = 0, limit: int = 50):
-    cursor = db.users.find({"role": "user"}).sort("created_at", -1).skip(skip).limit(limit)
+async def admin_users(user=Depends(get_admin_user), skip: int = 0, limit: int = 50, search: str = "", stage: int = 0):
+    query = {"role": "user"}
+    if search:
+        query["$or"] = [
+            {"name": {"$regex": search, "$options": "i"}},
+            {"email": {"$regex": search, "$options": "i"}}
+        ]
+    if stage > 0:
+        query["stage"] = stage
+    cursor = db.users.find(query).sort("created_at", -1).skip(skip).limit(limit)
     users = await cursor.to_list(limit)
-    total = await db.users.count_documents({"role": "user"})
+    total = await db.users.count_documents(query)
     return {
         "users": [serialize_doc(u) for u in users],
         "total": total
@@ -1030,7 +1248,7 @@ async def get_video(video_id: str, user=Depends(get_current_user)):
 async def admin_get_stories(user=Depends(get_admin_user), status: str = ""):
     """Get stories for moderation."""
     query = {}
-    if status:
+    if status and status != "all":
         query["status"] = status
     stories = await db.stories.find(query).sort("created_at", -1).to_list(100)
     return {"stories": [serialize_doc(s) for s in stories]}

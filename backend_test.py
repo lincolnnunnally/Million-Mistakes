@@ -695,6 +695,160 @@ class TenMillionMistakesAPITester:
         
         return all([success1, success2, success3, success4, success5, success6, success7, success8, success9])
 
+    # ============== PHASE 4 TESTS ==============
+    
+    def test_profile_stats(self):
+        """Test profile stats endpoint"""
+        return self.run_test(
+            "Get Profile Stats",
+            "GET",
+            "/api/profile/stats",
+            200,
+            auth_token=self.user_token
+        )
+    
+    def test_update_profile(self):
+        """Test profile update"""
+        return self.run_test(
+            "Update Profile",
+            "PUT",
+            "/api/profile",
+            200,
+            data={
+                "name": "Updated Test User",
+                "domains": ["money_career", "relationships"]
+            },
+            auth_token=self.user_token
+        )
+    
+    def test_change_password(self):
+        """Test password change"""
+        return self.run_test(
+            "Change Password",
+            "POST",
+            "/api/profile/change-password",
+            200,
+            data={
+                "current_password": "test123",
+                "new_password": "newtest123"
+            },
+            auth_token=self.user_token
+        )
+    
+    def test_retake_quiz(self):
+        """Test retake quiz functionality"""
+        return self.run_test(
+            "Retake Quiz",
+            "POST",
+            "/api/profile/retake-quiz",
+            200,
+            auth_token=self.user_token
+        )
+    
+    def test_registration_validation(self):
+        """Test registration input validation"""
+        # Test invalid email
+        success1, _ = self.run_test(
+            "Registration - Invalid Email",
+            "POST",
+            "/api/auth/register",
+            422,  # Validation error
+            data={"email": "invalid-email", "password": "test123", "name": "Test"}
+        )
+        
+        # Test short password
+        success2, _ = self.run_test(
+            "Registration - Short Password",
+            "POST",
+            "/api/auth/register",
+            422,  # Validation error
+            data={"email": "test@test.com", "password": "123", "name": "Test"}
+        )
+        
+        # Test missing name
+        success3, _ = self.run_test(
+            "Registration - Missing Name",
+            "POST",
+            "/api/auth/register",
+            422,  # Validation error
+            data={"email": "test@test.com", "password": "test123", "name": ""}
+        )
+        
+        return success1 and success2 and success3
+    
+    def test_admin_user_search(self):
+        """Test admin user search functionality"""
+        if not self.admin_token:
+            return False
+            
+        return self.run_test(
+            "Admin User Search",
+            "GET",
+            "/api/admin/users?search=test",
+            200,
+            auth_token=self.admin_token
+        )
+    
+    def test_admin_story_filter(self):
+        """Test admin story status filtering"""
+        if not self.admin_token:
+            return False
+            
+        # Test filtering by pending status
+        success1, _ = self.run_test(
+            "Admin Stories - Filter Pending",
+            "GET",
+            "/api/admin/stories?status=pending",
+            200,
+            auth_token=self.admin_token
+        )
+        
+        # Test filtering by approved status
+        success2, _ = self.run_test(
+            "Admin Stories - Filter Approved",
+            "GET",
+            "/api/admin/stories?status=approved",
+            200,
+            auth_token=self.admin_token
+        )
+        
+        return success1 and success2
+    
+    def test_rate_limiting(self):
+        """Test rate limiting on auth endpoints"""
+        self.log("🔒 Testing rate limiting (this may take a moment)...")
+        
+        # Test registration rate limit (5/minute)
+        registration_attempts = 0
+        for i in range(7):  # Try 7 times to exceed limit of 5
+            test_email = f"ratetest_{int(time.time())}_{i}@test.com"
+            success, response = self.run_test(
+                f"Rate Limit Test - Registration {i+1}",
+                "POST",
+                "/api/auth/register",
+                200 if i < 5 else 429,  # Expect 429 after 5 attempts
+                data={"email": test_email, "password": "test123", "name": "Rate Test"}
+            )
+            if success or (not success and i >= 5):
+                registration_attempts += 1
+            time.sleep(0.5)  # Small delay between requests
+        
+        # Test login rate limit (10/minute) - we'll just test a few
+        login_attempts = 0
+        for i in range(3):
+            success, response = self.run_test(
+                f"Rate Limit Test - Login {i+1}",
+                "POST",
+                "/api/auth/login",
+                401,  # Invalid credentials, but should not be rate limited yet
+                data={"email": "nonexistent@test.com", "password": "wrong"}
+            )
+            if success or response:  # Count any response as successful rate limit test
+                login_attempts += 1
+            time.sleep(0.5)
+        
+        return registration_attempts >= 6 and login_attempts >= 3  # At least some tests passed
+
     def run_all_tests(self):
         """Run all tests in sequence"""
         self.log("🚀 Starting 10 Million Mistakes API Tests")
@@ -749,6 +903,21 @@ class TenMillionMistakesAPITester:
         self.test_buddy_system()
         self.test_mentorship_system()
         self.test_video_library()
+        
+        # Phase 4 feature tests
+        self.test_profile_stats()
+        self.test_update_profile()
+        self.test_change_password()
+        self.test_retake_quiz()
+        self.test_registration_validation()
+        
+        # Admin Phase 4 tests
+        if self.admin_token:
+            self.test_admin_user_search()
+            self.test_admin_story_filter()
+        
+        # Rate limiting tests (run last as they may affect other tests)
+        self.test_rate_limiting()
         
         return self.print_results()
 

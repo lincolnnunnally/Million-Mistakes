@@ -308,7 +308,25 @@ export default function AdminPage() {
           {/* ========== USERS ========== */}
           <TabsContent value="users">
             <Card>
-              <CardHeader><CardTitle className="text-lg font-display">All Users ({users.length})</CardTitle></CardHeader>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-display">All Users ({users.length})</CardTitle>
+                  <div className="flex gap-2">
+                    <Input
+                      data-testid="admin-user-search"
+                      placeholder="Search by name or email..."
+                      className="w-64 h-9"
+                      onChange={async (e) => {
+                        const search = e.target.value;
+                        try {
+                          const data = await api.get(`/api/admin/users?search=${encodeURIComponent(search)}`);
+                          setUsers(data?.users || []);
+                        } catch (err) { console.error(err); }
+                      }}
+                    />
+                  </div>
+                </div>
+              </CardHeader>
               <CardContent className="p-0 overflow-x-auto">
                 <Table>
                   <TableHeader>
@@ -479,7 +497,28 @@ export default function AdminPage() {
           {/* ========== STORIES MODERATION ========== */}
           <TabsContent value="stories">
             <Card>
-              <CardHeader><CardTitle className="text-lg font-display">Story Moderation ({stories.length})</CardTitle></CardHeader>
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-display">Story Moderation ({stories.length})</CardTitle>
+                  <div className="flex gap-2">
+                    <Select defaultValue="" onValueChange={async (value) => {
+                      try {
+                        const q = value ? `?status=${value}` : '';
+                        const data = await api.get(`/api/admin/stories${q}`);
+                        setStories(data?.stories || []);
+                      } catch (err) { console.error(err); }
+                    }}>
+                      <SelectTrigger className="w-36 h-9"><SelectValue placeholder="All Statuses" /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="pending">Pending</SelectItem>
+                        <SelectItem value="approved">Approved</SelectItem>
+                        <SelectItem value="rejected">Rejected</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+              </CardHeader>
               <CardContent className="p-0 overflow-x-auto">
                 <Table>
                   <TableHeader><TableRow>

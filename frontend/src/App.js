@@ -2,8 +2,10 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AppProvider, useApp } from './lib/context';
 import { Toaster } from './components/ui/sonner';
-import { Flame, Home, Trophy, BookOpen, TrendingUp, Brain, MessageSquare, Users, Video } from 'lucide-react';
+import { Flame, Home, Trophy, BookOpen, TrendingUp, Brain, MessageSquare, Users, Video, Settings } from 'lucide-react';
 import './App.css';
+
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Pages
 import WelcomePage from './pages/WelcomePage';
@@ -20,6 +22,7 @@ import StoriesPage from './pages/StoriesPage';
 import BuddiesPage from './pages/BuddiesPage';
 import VideosPage from './pages/VideosPage';
 import AdminPage from './pages/AdminPage';
+import SettingsPage from './pages/SettingsPage';
 
 function ProtectedRoute({ children, requireAdmin = false, requireOnboarded = false }) {
   const { user, loading } = useApp();
@@ -127,6 +130,9 @@ function AppRoutes() {
         <Route path="/admin" element={
           <ProtectedRoute requireAdmin><AdminPage /></ProtectedRoute>
         } />
+        <Route path="/settings" element={
+          <ProtectedRoute requireOnboarded><SettingsPage /></ProtectedRoute>
+        } />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       <BottomNav />
@@ -136,12 +142,14 @@ function AppRoutes() {
 
 function App() {
   return (
-    <Router>
-      <AppProvider>
-        <AppRoutes />
-        <Toaster richColors position="top-center" />
-      </AppProvider>
-    </Router>
+    <ErrorBoundary>
+      <Router>
+        <AppProvider>
+          <AppRoutes />
+          <Toaster richColors position="top-center" />
+        </AppProvider>
+      </Router>
+    </ErrorBoundary>
   );
 }
 

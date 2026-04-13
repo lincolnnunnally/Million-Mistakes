@@ -5,7 +5,7 @@ import { api } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Flame, RefreshCw, ArrowRight, Zap, Trophy, BookOpen, Sparkles, Brain, MessageSquare, Users, Video } from 'lucide-react';
+import { Flame, RefreshCw, ArrowRight, Zap, Trophy, BookOpen, Sparkles, Brain, MessageSquare, Users, Video, Settings } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
 
@@ -86,8 +86,19 @@ export default function HomePage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-6"
         >
-          <h1 className="text-2xl font-display font-bold">Hey {user?.name || 'Friend'}!</h1>
-          <p className="text-[hsl(22,12%,40%)] text-sm">Ready to make today's brave mistake?</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-display font-bold">Hey {user?.name || 'Friend'}!</h1>
+              <p className="text-[hsl(22,12%,40%)] text-sm">Ready to make today's brave mistake?</p>
+            </div>
+            <button
+              data-testid="home-settings-button"
+              onClick={() => navigate('/settings')}
+              className="w-10 h-10 rounded-full bg-white border border-[hsl(28,25%,86%)] flex items-center justify-center hover:bg-[hsl(36,45%,94%)] transition-colors"
+            >
+              <Settings className="w-4 h-4 text-[hsl(22,12%,40%)]" />
+            </button>
+          </div>
         </motion.div>
 
         {/* Quick Stats */}
