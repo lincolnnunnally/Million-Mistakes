@@ -504,7 +504,7 @@ async def get_quiz():
 @app.post("/api/onboarding/complete")
 async def complete_onboarding(data: OnboardingInput, user=Depends(get_current_user)):
     # Calculate stage from quiz answers
-    stage_scores = {1: 0, 2: 0, 3: 0, 4: 0}
+    stage_scores = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
     for answer in data.quiz_answers:
         q_id = answer.get('question_id')
         opt_idx = answer.get('selected_option_index')
@@ -814,7 +814,7 @@ async def admin_stats(user=Depends(get_admin_user)):
 
     # Users by stage
     stage_counts = {}
-    for stage in [1, 2, 3, 4]:
+    for stage in [1, 2, 3, 4, 5]:
         count = await db.users.count_documents({"stage": stage, "role": "user"})
         stage_counts[str(stage)] = count
     unassigned = await db.users.count_documents({"stage": None, "role": "user"})
@@ -1107,7 +1107,7 @@ async def create_buddy_request(data: BuddyRequestInput, user=Depends(get_current
 async def find_buddy_match(user_id: str, stage: int, domain: str):
     """Find a matching buddy request."""
     # Look for someone at same/adjacent stage with matching domain
-    stages_to_match = [stage, max(1, stage - 1), min(4, stage + 1)]
+    stages_to_match = [stage, max(1, stage - 1), min(5, stage + 1)]
     match = await db.buddy_requests.find_one({
         "user_id": {"$ne": user_id},
         "status": "pending",

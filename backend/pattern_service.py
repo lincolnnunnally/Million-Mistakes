@@ -16,7 +16,8 @@ OBSTACLE_THEMES = {
     "self_doubt": ["can't do", "not capable", "doubt", "unsure", "don't know", "imposter", "fraud", "not smart"],
     "people_pleasing": ["please", "disappoint", "let down", "said yes", "couldn't say no", "their expectation"],
     "comfort_zone": ["comfort", "safe", "routine", "same old", "stuck", "familiar", "easy way"],
-    "overthinking": ["overthink", "overanalyz", "too much thinking", "spiral", "ruminate", "replay", "couldn't stop thinking"]
+    "overthinking": ["overthink", "overanalyz", "too much thinking", "spiral", "ruminate", "replay", "couldn't stop thinking"],
+    "paradox_of_choice": ["too many options", "can't decide", "which one", "so many choices", "all the options", "can't commit", "what if I pick wrong", "other options", "different path", "which path", "indecisive", "too many paths"]
 }
 
 THEME_LABELS = {
@@ -27,7 +28,8 @@ THEME_LABELS = {
     "self_doubt": "Self-Doubt",
     "people_pleasing": "People-Pleasing",
     "comfort_zone": "Comfort Zone Clinging",
-    "overthinking": "Overthinking"
+    "overthinking": "Overthinking",
+    "paradox_of_choice": "Paradox of Choice"
 }
 
 

@@ -8,7 +8,8 @@ QUIZ_QUESTIONS = [
             {"text": "What's the point? I'll just fail again.", "stage": 1, "weight": 3},
             {"text": "I need to research everything first before I try.", "stage": 2, "weight": 3},
             {"text": "I'd love to, but I have responsibilities others expect of me.", "stage": 3, "weight": 3},
-            {"text": "Exciting but terrifying — I want to but I hesitate.", "stage": 4, "weight": 3}
+            {"text": "Exciting but terrifying — I want to but I hesitate.", "stage": 4, "weight": 3},
+            {"text": "I have so many options, I can't commit to just one.", "stage": 5, "weight": 3}
         ]
     },
     {
@@ -18,7 +19,8 @@ QUIZ_QUESTIONS = [
             {"text": "They prove I'm not good enough.", "stage": 1, "weight": 3},
             {"text": "I replay them constantly, analyzing what went wrong.", "stage": 2, "weight": 3},
             {"text": "Most weren't even my choices — I was doing what others wanted.", "stage": 3, "weight": 3},
-            {"text": "They stung, but I know they taught me something.", "stage": 4, "weight": 3}
+            {"text": "They stung, but I know they taught me something.", "stage": 4, "weight": 3},
+            {"text": "I wonder if I picked the wrong path — maybe another choice would've been better.", "stage": 5, "weight": 3}
         ]
     },
     {
@@ -28,7 +30,8 @@ QUIZ_QUESTIONS = [
             {"text": "I don't even know anymore. I've stopped dreaming.", "stage": 1, "weight": 3},
             {"text": "I have ideas, but I need the perfect plan before I start.", "stage": 2, "weight": 3},
             {"text": "I know what others want me to do, but my own answer feels selfish.", "stage": 3, "weight": 3},
-            {"text": "I have a dream, but saying it out loud feels too risky.", "stage": 4, "weight": 3}
+            {"text": "I have a dream, but saying it out loud feels too risky.", "stage": 4, "weight": 3},
+            {"text": "I have too many dreams — picking just one feels like closing other doors.", "stage": 5, "weight": 3}
         ]
     },
     {
@@ -38,7 +41,8 @@ QUIZ_QUESTIONS = [
             {"text": "That it confirms I'm broken and can't succeed.", "stage": 1, "weight": 3},
             {"text": "That people will judge me or think I'm stupid.", "stage": 2, "weight": 3},
             {"text": "That I'll disappoint the people counting on me.", "stage": 3, "weight": 3},
-            {"text": "That the dream I'm chasing might not work out.", "stage": 4, "weight": 3}
+            {"text": "That the dream I'm chasing might not work out.", "stage": 4, "weight": 3},
+            {"text": "That I'll regret not picking one of the other options I had.", "stage": 5, "weight": 3}
         ]
     },
     {
@@ -48,7 +52,8 @@ QUIZ_QUESTIONS = [
             {"text": "I'm stuck in a hole and don't know how to climb out.", "stage": 1, "weight": 3},
             {"text": "I'm on the edge of something but can't take the leap.", "stage": 2, "weight": 3},
             {"text": "I'm moving, but in someone else's direction.", "stage": 3, "weight": 3},
-            {"text": "I'm ready to run — I just need to pick a direction and go.", "stage": 4, "weight": 3}
+            {"text": "I'm ready to run — I just need to pick a direction and go.", "stage": 4, "weight": 3},
+            {"text": "I'm standing at a crossroads with too many paths to choose from.", "stage": 5, "weight": 3}
         ]
     },
     {
@@ -58,7 +63,8 @@ QUIZ_QUESTIONS = [
             {"text": "I'd stop giving up before I even start.", "stage": 1, "weight": 3},
             {"text": "I'd stop overthinking and just act.", "stage": 2, "weight": 3},
             {"text": "I'd start choosing my own challenges instead of others'.", "stage": 3, "weight": 3},
-            {"text": "I'd stop waiting for the 'right moment' and just begin.", "stage": 4, "weight": 3}
+            {"text": "I'd stop waiting for the 'right moment' and just begin.", "stage": 4, "weight": 3},
+            {"text": "I'd commit to one path and stop second-guessing every choice.", "stage": 5, "weight": 3}
         ]
     },
     {
@@ -144,6 +150,13 @@ STAGE_DESCRIPTIONS = {
         "description": "You have the vision and the fire. You know what you want and you're almost ready to go for it. The only thing between you and your dream is the willingness to fail publicly and keep going. Let's practice that.",
         "focus": "Taking bold public action and building resilience",
         "icon": "rocket"
+    },
+    5: {
+        "name": "The Overthinker",
+        "tagline": "Too many options, not enough action.",
+        "description": "You're talented and could succeed at many things — and that's exactly the problem. Every path looks promising, so choosing one feels like giving up on all the others. But here's the secret: the best choice is the one you actually make.",
+        "focus": "Quick decisions, commitment challenges, and embracing imperfect choices",
+        "icon": "compass"
     }
 }
 

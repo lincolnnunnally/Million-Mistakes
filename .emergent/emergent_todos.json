@@ -1,14 +1,22 @@
 [
   {
-    "content": "Fix React Hook dependency warning in VideosPage.js",
+    "content": "Add 5th stage 'The Overthinker' to onboarding quiz questions",
     "status": "completed"
   },
   {
-    "content": "Verify frontend compiles without errors",
+    "content": "Update backend server.py to handle 5 stages",
     "status": "completed"
   },
   {
-    "content": "Take screenshots of key app pages for user testing handoff",
+    "content": "Update AI challenge generation for Overthinker stage (quick decisions + commitment)",
+    "status": "completed"
+  },
+  {
+    "content": "Update pattern recognition for paradox of choice patterns",
+    "status": "completed"
+  },
+  {
+    "content": "Test the new stage flow end-to-end",
     "status": "completed"
   }
 ]

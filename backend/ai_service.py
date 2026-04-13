@@ -11,7 +11,8 @@ STAGES = {
     1: "Beaten down - feels hopeless, has given up after repeated failures",
     2: "Analysis paralysis - hopeful but overthinks everything, paralyzed by fear of judgment",
     3: "Stuck in others' dreams - determined but living someone else's vision, not their own",
-    4: "Courageous dreamer - ready to dream big but needs practice stepping into the unknown"
+    4: "Courageous dreamer - ready to dream big but needs practice stepping into the unknown",
+    5: "The Overthinker - talented with too many options, paralyzed by paradox of choice, fears commitment to wrong path"
 }
 
 SYSTEM_PROMPT = """You are the challenge engine for "10 Million Mistakes" — an app that helps people overcome fear of failure by deliberately making and learning from mistakes.
@@ -152,6 +153,34 @@ FALLBACK_CHALLENGES = {
         "why_this": "Stage 4 is about stepping into the unknown. Publishing imperfect work proves you value progress over perfection.",
         "difficulty": 4, "domain": "Skills/Hobbies", "stage": 4,
         "coaching_line": "It's out there now. Imperfect and brave. That's how legends start."
+    },
+    (5, "Money/Career"): {
+        "title": "Pick One in 60 Seconds",
+        "challenge": "Set a timer for 60 seconds. Write down 2-3 career options you're considering. When the timer goes off, circle one. That's your focus for the next 24 hours. No changing your mind.",
+        "why_this": "The paradox of choice paralyzes you. Quick decisions teach you that picking imperfectly beats not picking at all.",
+        "difficulty": 3, "domain": "Money/Career", "stage": 5,
+        "coaching_line": "You chose. That's harder than it sounds. Now stick with it and see what happens."
+    },
+    (5, "Relationships"): {
+        "title": "Commit to One Social Plan",
+        "challenge": "Text one person right now and commit to a specific time to meet this week. Don't leave it open-ended. Pick a day, time, and place. Hit send.",
+        "why_this": "Overthinkers keep all options open forever. Making a concrete plan and sticking to it builds your commitment muscle.",
+        "difficulty": 3, "domain": "Relationships", "stage": 5,
+        "coaching_line": "You committed. You picked a time, a place, a person. That's decisive action."
+    },
+    (5, "Spiritual/Emotional"): {
+        "title": "One Thing, 15 Minutes",
+        "challenge": "Pick ONE thing you've been wanting to explore (meditation, journaling, a new book). Set a timer for 15 minutes and do just that. Nothing else on your list today.",
+        "why_this": "Too many options means you never go deep on anything. Committing to one thing, even for 15 minutes, trains your focus.",
+        "difficulty": 2, "domain": "Spiritual/Emotional", "stage": 5,
+        "coaching_line": "You didn't try to do everything. You chose one thing and went deep. That's growth."
+    },
+    (5, "Skills/Hobbies"): {
+        "title": "Start Before You're Ready",
+        "challenge": "Pick one skill or hobby from your long list. Spend 20 minutes on it TODAY — no more research, no more planning. Just start messily.",
+        "why_this": "Overthinkers research forever, waiting to feel 'ready.' Starting before you're ready is the fastest way to break the paradox of choice.",
+        "difficulty": 3, "domain": "Skills/Hobbies", "stage": 5,
+        "coaching_line": "You started before you were ready. That's exactly how every expert began."
     }
 }
 
