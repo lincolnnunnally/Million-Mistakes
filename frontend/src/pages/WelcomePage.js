@@ -98,7 +98,7 @@ export default function WelcomePage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.9, duration: 0.5 }}
-            className="flex flex-col sm:flex-row gap-3 justify-center"
+            className="flex flex-col sm:flex-row gap-3 justify-center items-center"
           >
             <Button
               data-testid="welcome-start-button"
@@ -109,12 +109,29 @@ export default function WelcomePage() {
             </Button>
             <Button
               data-testid="welcome-login-button"
-              variant="outline"
               onClick={() => navigate('/login')}
-              className="rounded-full px-8 py-6 text-lg border-[hsl(28,25%,86%)] hover:bg-[hsl(36,45%,94%)]"
+              className="rounded-full px-8 py-6 text-lg font-display font-semibold bg-white border-2 border-[hsl(18,92%,52%)] text-[hsl(18,92%,52%)] hover:bg-[hsl(18,92%,52%)] hover:text-white shadow-md transition-all duration-200"
             >
-              I already have an account
+              Login
             </Button>
+          </motion.div>
+          
+          {/* Additional login link for clarity */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1.1, duration: 0.5 }}
+            className="mt-6"
+          >
+            <p className="text-sm text-[hsl(22,12%,40%)]">
+              Already a member?{' '}
+              <button
+                onClick={() => navigate('/login')}
+                className="text-[hsl(18,92%,52%)] font-semibold hover:underline"
+              >
+                Sign in here
+              </button>
+            </p>
           </motion.div>
         </motion.div>
 

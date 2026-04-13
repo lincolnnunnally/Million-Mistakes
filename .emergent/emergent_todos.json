@@ -1,18 +1,10 @@
 [
   {
-    "content": "Make admin dashboard stat cards clickable with proper navigation",
+    "content": "Add clear login button to welcome page for returning users",
     "status": "completed"
   },
   {
-    "content": "Add hover states and cursor pointers to indicate clickability",
-    "status": "completed"
-  },
-  {
-    "content": "Implement stage filtering when clicking Users by Stage cards",
-    "status": "completed"
-  },
-  {
-    "content": "Test all card click interactions",
+    "content": "Test login flow from welcome page",
     "status": "completed"
   }
 ]
