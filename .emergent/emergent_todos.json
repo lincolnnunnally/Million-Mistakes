@@ -1,0 +1,34 @@
+[
+  {
+    "content": "Phase 1: Get OpenAI integration playbook + Emergent LLM key",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 1: Build & test POC - AI challenge generation (structured JSON, safety, fallback)",
+    "status": "completed"
+  },
+  {
+    "content": "Phase 2: Design agent - Get UI/UX guidelines",
+    "status": "in_progress"
+  },
+  {
+    "content": "Phase 2: Backend - Auth, models, all API endpoints",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: Frontend - Onboarding, home, journal, vault, mantras, admin dashboard",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: Seed starter content (quiz, mantras, fallback challenges)",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: All user stories covered in development and testing",
+    "status": "pending"
+  },
+  {
+    "content": "Phase 2: End to end testing using Testing Agent",
+    "status": "pending"
+  }
+]
