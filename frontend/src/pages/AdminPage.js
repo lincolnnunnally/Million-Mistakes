@@ -201,7 +201,37 @@ export default function AdminPage() {
     catch (err) { console.error(err); }
   };
 
-  const stageNames = { 1: 'Beaten Down', 2: 'Analysis Paralysis', 3: "Stuck in Others' Dreams", 4: 'Courageous Dreamer' };
+  const stageNames = { 
+    1: 'Beaten Down', 
+    2: 'Analysis Paralysis', 
+    3: "Stuck in Others' Dreams", 
+    4: 'Courageous Dreamer',
+    5: 'The Overthinker'
+  };
+
+  // State for user filtering
+  const [userStageFilter, setUserStageFilter] = useState(null);
+  const [userSearchQuery, setUserSearchQuery] = useState('');
+
+  // Helper to load users with filters
+  const loadUsersWithFilter = async (stageFilter = null, search = '') => {
+    try {
+      let url = '/api/admin/users?';
+      if (search) url += `search=${encodeURIComponent(search)}&`;
+      if (stageFilter && stageFilter !== 'all') url += `stage=${stageFilter}`;
+      const data = await api.get(url);
+      setUsers(data?.users || []);
+    } catch (err) { console.error(err); }
+  };
+
+  // Navigate to a tab and optionally apply filters
+  const navigateToTab = (newTab, options = {}) => {
+    setTab(newTab);
+    if (newTab === 'users' && options.stageFilter !== undefined) {
+      setUserStageFilter(options.stageFilter);
+      setTimeout(() => loadUsersWithFilter(options.stageFilter, userSearchQuery), 100);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-[hsl(36,60%,98%)]">
@@ -246,13 +276,21 @@ export default function AdminPage() {
               <div className="space-y-6">
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                   {[
-                    { label: 'Total Users', value: stats.total_users, icon: Users, color: 'hsl(18,92%,52%)' },
-                    { label: 'Total Reflections', value: stats.total_reflections, icon: MessageSquare, color: 'hsl(173,55%,34%)' },
+                    { label: 'Total Users', value: stats.total_users, icon: Users, color: 'hsl(18,92%,52%)', action: () => navigateToTab('users') },
+                    { label: 'Total Reflections', value: stats.total_reflections, icon: MessageSquare, color: 'hsl(173,55%,34%)', action: () => navigateToTab('reflections') },
                     { label: 'Total Challenges', value: stats.total_challenges, icon: Zap, color: 'hsl(43,92%,55%)' },
-                    { label: "Today's Activity", value: stats.todays_reflections, icon: TrendingUp, color: 'hsl(200,70%,40%)' }
+                    { label: "Today's Activity", value: stats.todays_reflections, icon: TrendingUp, color: 'hsl(200,70%,40%)', action: () => navigateToTab('reflections') }
                   ].map((stat, i) => (
-                    <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }}>
-                      <Card>
+                    <motion.div 
+                      key={i} 
+                      initial={{ opacity: 0, y: 10 }} 
+                      animate={{ opacity: 1, y: 0 }} 
+                      transition={{ delay: i * 0.1 }}
+                    >
+                      <Card 
+                        className={stat.action ? "cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02]" : ""}
+                        onClick={stat.action}
+                      >
                         <CardContent className="p-4">
                           <stat.icon className="w-5 h-5 mb-2" style={{ color: stat.color }} />
                           <p className="text-2xl font-display font-bold">{stat.value}</p>
@@ -266,32 +304,59 @@ export default function AdminPage() {
                 {/* Extended Stats */}
                 {extStats && (
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    <Card><CardContent className="p-4">
-                      <p className="text-xl font-display font-bold text-[hsl(18,92%,52%)]">{extStats.stories?.pending || 0}</p>
-                      <p className="text-xs text-[hsl(22,12%,40%)]">Pending Stories</p>
-                    </CardContent></Card>
-                    <Card><CardContent className="p-4">
-                      <p className="text-xl font-display font-bold text-[hsl(173,55%,34%)]">{extStats.connections?.total || 0}</p>
-                      <p className="text-xs text-[hsl(22,12%,40%)]">Active Connections</p>
-                    </CardContent></Card>
-                    <Card><CardContent className="p-4">
-                      <p className="text-xl font-display font-bold text-[hsl(43,92%,55%)]">{extStats.videos || 0}</p>
-                      <p className="text-xs text-[hsl(22,12%,40%)]">Videos</p>
-                    </CardContent></Card>
-                    <Card><CardContent className="p-4">
-                      <p className="text-xl font-display font-bold text-[hsl(200,70%,40%)]">{extStats.buddy_requests_pending || 0}</p>
-                      <p className="text-xs text-[hsl(22,12%,40%)]">Pending Buddy Requests</p>
-                    </CardContent></Card>
+                    <Card 
+                      className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
+                      onClick={() => navigateToTab('stories')}
+                    >
+                      <CardContent className="p-4">
+                        <p className="text-xl font-display font-bold text-[hsl(18,92%,52%)]">{extStats.stories?.pending || 0}</p>
+                        <p className="text-xs text-[hsl(22,12%,40%)]">Pending Stories</p>
+                      </CardContent>
+                    </Card>
+                    <Card 
+                      className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
+                      onClick={() => navigateToTab('community')}
+                    >
+                      <CardContent className="p-4">
+                        <p className="text-xl font-display font-bold text-[hsl(173,55%,34%)]">{extStats.connections?.total || 0}</p>
+                        <p className="text-xs text-[hsl(22,12%,40%)]">Active Connections</p>
+                      </CardContent>
+                    </Card>
+                    <Card 
+                      className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
+                      onClick={() => navigateToTab('videos')}
+                    >
+                      <CardContent className="p-4">
+                        <p className="text-xl font-display font-bold text-[hsl(43,92%,55%)]">{extStats.videos || 0}</p>
+                        <p className="text-xs text-[hsl(22,12%,40%)]">Videos</p>
+                      </CardContent>
+                    </Card>
+                    <Card 
+                      className="cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02]"
+                      onClick={() => navigateToTab('community')}
+                    >
+                      <CardContent className="p-4">
+                        <p className="text-xl font-display font-bold text-[hsl(200,70%,40%)]">{extStats.buddy_requests_pending || 0}</p>
+                        <p className="text-xs text-[hsl(22,12%,40%)]">Pending Buddy Requests</p>
+                      </CardContent>
+                    </Card>
                   </div>
                 )}
 
                 {/* Users by Stage */}
                 <Card>
-                  <CardHeader><CardTitle className="text-lg font-display">Users by Stage</CardTitle></CardHeader>
+                  <CardHeader>
+                    <CardTitle className="text-lg font-display">Users by Stage</CardTitle>
+                    <p className="text-xs text-[hsl(22,12%,40%)] mt-1">Click any stage to view those users</p>
+                  </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <div className="grid grid-cols-2 sm:grid-cols-6 gap-3">
                       {Object.entries(stats.users_by_stage || {}).map(([stage, count]) => (
-                        <div key={stage} className="text-center p-3 rounded-lg bg-[hsl(36,45%,94%)]">
+                        <div 
+                          key={stage} 
+                          className="text-center p-3 rounded-lg bg-[hsl(36,45%,94%)] cursor-pointer hover:bg-[hsl(18,92%,52%,0.1)] hover:shadow-md transition-all duration-200 hover:scale-105"
+                          onClick={() => navigateToTab('users', { stageFilter: stage === 'unassigned' ? null : parseInt(stage) })}
+                        >
                           <p className="text-xl font-display font-bold">{count}</p>
                           <p className="text-xs text-[hsl(22,12%,40%)]">
                             {stage === 'unassigned' ? 'Not Onboarded' : `Stage ${stage}`}
@@ -309,19 +374,40 @@ export default function AdminPage() {
           <TabsContent value="users">
             <Card>
               <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-display">All Users ({users.length})</CardTitle>
+                <div className="flex items-center justify-between flex-wrap gap-3">
+                  <div>
+                    <CardTitle className="text-lg font-display">
+                      All Users ({users.length})
+                      {userStageFilter && (
+                        <Badge variant="outline" className="ml-2 text-xs">
+                          Showing Stage {userStageFilter} only
+                        </Badge>
+                      )}
+                    </CardTitle>
+                    {userStageFilter && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="mt-2 text-xs h-7"
+                        onClick={() => {
+                          setUserStageFilter(null);
+                          loadUsersWithFilter(null, userSearchQuery);
+                        }}
+                      >
+                        <X className="w-3 h-3 mr-1" /> Clear filter
+                      </Button>
+                    )}
+                  </div>
                   <div className="flex gap-2">
                     <Input
                       data-testid="admin-user-search"
                       placeholder="Search by name or email..."
                       className="w-64 h-9"
+                      value={userSearchQuery}
                       onChange={async (e) => {
                         const search = e.target.value;
-                        try {
-                          const data = await api.get(`/api/admin/users?search=${encodeURIComponent(search)}`);
-                          setUsers(data?.users || []);
-                        } catch (err) { console.error(err); }
+                        setUserSearchQuery(search);
+                        loadUsersWithFilter(userStageFilter, search);
                       }}
                     />
                   </div>

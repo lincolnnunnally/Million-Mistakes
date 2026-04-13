@@ -1,22 +1,18 @@
 [
   {
-    "content": "Add 5th stage 'The Overthinker' to onboarding quiz questions",
+    "content": "Make admin dashboard stat cards clickable with proper navigation",
     "status": "completed"
   },
   {
-    "content": "Update backend server.py to handle 5 stages",
+    "content": "Add hover states and cursor pointers to indicate clickability",
     "status": "completed"
   },
   {
-    "content": "Update AI challenge generation for Overthinker stage (quick decisions + commitment)",
+    "content": "Implement stage filtering when clicking Users by Stage cards",
     "status": "completed"
   },
   {
-    "content": "Update pattern recognition for paradox of choice patterns",
-    "status": "completed"
-  },
-  {
-    "content": "Test the new stage flow end-to-end",
+    "content": "Test all card click interactions",
     "status": "completed"
   }
 ]
