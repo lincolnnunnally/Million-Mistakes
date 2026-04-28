@@ -7,6 +7,7 @@ import { Card, CardContent } from '../components/ui/card';
 import { Progress } from '../components/ui/progress';
 import { Flame, ArrowRight, ArrowLeft, Sprout, Brain, Compass, Rocket, Briefcase, Heart, Sun, Palette, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { ContentList } from '../components/ContentDisplay';
 
 const STAGE_ICONS = {
   seedling: Sprout,
@@ -30,6 +31,7 @@ export default function OnboardingPage() {
   const [answers, setAnswers] = useState({});
   const [selectedDomains, setSelectedDomains] = useState([]);
   const [result, setResult] = useState(null);
+  const [onboardingContent, setOnboardingContent] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
 
@@ -78,6 +80,14 @@ export default function OnboardingPage() {
       setResult(data);
       setStep(totalSteps);
       await refreshUser();
+      
+      // Load onboarding content for this stage
+      try {
+        const contentData = await api.get(`/api/content/for-me?context=onboarding`);
+        setOnboardingContent(contentData?.content || []);
+      } catch (err) {
+        console.error('Failed to load onboarding content:', err);
+      }
     } catch (err) {
       console.error('Onboarding failed:', err);
     } finally {
@@ -265,6 +275,19 @@ export default function OnboardingPage() {
                         </p>
                       </CardContent>
                     </Card>
+                    
+                    {/* Onboarding Content (videos/articles) */}
+                    {onboardingContent.length > 0 && (
+                      <div className="mb-6 text-left">
+                        <h2 className="text-xl font-display font-bold mb-3 text-center">Here's what you need to know:</h2>
+                        <ContentList 
+                          content={onboardingContent}
+                          context="onboarding"
+                          onView={(id) => api.post(`/api/content/${id}/view`).catch(() => {})}
+                        />
+                      </div>
+                    )}
+                    
                     <Button
                       data-testid="onboarding-go-home-button"
                       onClick={() => navigate('/home')}

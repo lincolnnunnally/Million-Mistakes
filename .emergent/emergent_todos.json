@@ -1,42 +1,34 @@
 [
   {
-    "content": "Build Admin Content Library tab UI with add/edit forms",
+    "content": "Create reusable ContentDisplay component for videos/articles",
     "status": "completed"
   },
   {
-    "content": "Create Mindset Moments management interface in admin",
+    "content": "Add mindset moment before daily challenges on HomePage",
     "status": "completed"
   },
   {
-    "content": "Add content analytics dashboard in admin",
+    "content": "Create 'Just Happened' emergency button on HomePage",
     "status": "completed"
   },
   {
-    "content": "Build video/article display component for users",
+    "content": "Add video player to onboarding results page",
     "status": "in_progress"
   },
   {
-    "content": "Integrate mindset moments before daily challenges",
+    "content": "Add 'Learn More' section in ReflectionPage after submission",
     "status": "pending"
   },
   {
-    "content": "Add 'Learn More' section after reflections",
+    "content": "Enhance PatternsPage with relevant teaching content",
     "status": "pending"
   },
   {
-    "content": "Create 'Just Happened' emergency log button",
+    "content": "Create content library page for users to browse all content",
     "status": "pending"
   },
   {
-    "content": "Add video player to onboarding flow",
-    "status": "pending"
-  },
-  {
-    "content": "Enhance pattern page with teaching content",
-    "status": "pending"
-  },
-  {
-    "content": "Test complete flow with real content",
+    "content": "Test complete user flow with sample content",
     "status": "pending"
   }
 ]

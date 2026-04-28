@@ -5,9 +5,10 @@ import { api } from '../lib/api';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
-import { Flame, RefreshCw, ArrowRight, Zap, Trophy, BookOpen, Sparkles, Brain, MessageSquare, Users, Video, Settings } from 'lucide-react';
+import { Flame, RefreshCw, ArrowRight, Zap, Trophy, BookOpen, Sparkles, Brain, MessageSquare, Users, Video, Settings, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
 import CountUp from 'react-countup';
+import { MindsetMoment } from '../components/ContentDisplay';
 
 export default function HomePage() {
   const { user } = useApp();
@@ -15,20 +16,24 @@ export default function HomePage() {
   const [challenge, setChallenge] = useState(null);
   const [progress, setProgress] = useState(null);
   const [mantras, setMantras] = useState([]);
+  const [mindsetMoment, setMindsetMoment] = useState(null);
+  const [showJustHappened, setShowJustHappened] = useState(false);
   const [loading, setLoading] = useState(true);
   const [swapping, setSwapping] = useState(false);
   const [mantraIdx, setMantraIdx] = useState(0);
 
   const loadData = useCallback(async () => {
     try {
-      const [challengeData, progressData, mantrasData] = await Promise.all([
+      const [challengeData, progressData, mantrasData, momentData] = await Promise.all([
         api.get('/api/challenge/today'),
         api.get('/api/progress'),
-        api.get('/api/mantras')
+        api.get('/api/mantras'),
+        api.get('/api/mindset-moment')
       ]);
       setChallenge(challengeData?.challenge);
       setProgress(progressData);
       setMantras(mantrasData?.mantras || []);
+      setMindsetMoment(momentData?.moment);
     } catch (err) {
       console.error('Failed to load home data:', err);
     } finally {
@@ -139,8 +144,71 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
+          className="space-y-4"
         >
-          <Card className="challenge-card shadow-[var(--shadow-soft)] mb-6">
+          {/* Mindset Moment */}
+          {mindsetMoment && !showJustHappened && (
+            <MindsetMoment moment={mindsetMoment} />
+          )}
+
+          {/* Just Happened Emergency Button */}
+          {!showJustHappened && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowJustHappened(true)}
+              className="w-full border-2 border-[hsl(18,92%,52%,0.3)] text-[hsl(18,92%,52%)] hover:bg-[hsl(18,92%,52%,0.1)]"
+            >
+              <AlertCircle className="w-4 h-4 mr-2" />
+              I just messed up - Need help NOW
+            </Button>
+          )}
+
+          {/* Just Happened Quick Log */}
+          {showJustHappened && (
+            <Card className="border-2 border-[hsl(18,92%,52%)]">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-display flex items-center gap-2">
+                  <AlertCircle className="w-5 h-5 text-[hsl(18,92%,52%)]" />
+                  You Just Messed Up - That's Okay
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="p-4 bg-[hsl(36,45%,94%)] rounded-lg">
+                  <p className="text-sm font-medium mb-2">Take a breath. This doesn't define you.</p>
+                  <p className="text-sm text-[hsl(22,12%,40%)]">
+                    This is just ONE mistake. Not your identity. Not the end. Just information. 
+                    Your fear of this moment was bigger than the moment itself.
+                  </p>
+                </div>
+                <p className="text-sm text-[hsl(22,12%,40%)]">What happened?</p>
+                <textarea
+                  className="w-full p-3 border rounded-lg resize-none"
+                  rows="3"
+                  placeholder="I just..."
+                />
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => {
+                      setShowJustHappened(false);
+                      navigate('/reflect');
+                    }}
+                    className="flex-1 bg-[hsl(18,92%,52%)] hover:bg-[hsl(18,92%,48%)]"
+                  >
+                    Log Full Reflection
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowJustHappened(false)}
+                  >
+                    Close
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          <Card className="challenge-card shadow-[var(--shadow-soft)]">
             <CardHeader className="pb-2">
               <div className="flex items-start justify-between">
                 <div>
