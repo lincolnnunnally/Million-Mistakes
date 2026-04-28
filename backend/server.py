@@ -352,6 +352,36 @@ class VideoInput(BaseModel):
     stage: int = 0  # 0 = all stages
     thumbnail_url: str = ""
 
+class ContentPieceInput(BaseModel):
+    title: str
+    content_type: str  # 'video' or 'article'
+    body: str  # URL for video, markdown/html for article
+    description: str = ""
+    theme: str = "general"  # perfectionism, fear_of_judgment, analysis_paralysis, etc.
+    display_locations: list = []  # onboarding, pre_challenge, post_reflection, pattern_insight, library
+    target_stages: list = []  # [1,2,3,4,5] or [] for all
+    target_patterns: list = []  # perfectionism, fear_of_judgment, etc.
+    thumbnail_url: str = ""
+    duration_minutes: int = 0  # for videos
+    
+    @field_validator('content_type')
+    @classmethod
+    def validate_content_type(cls, v):
+        valid = ['video', 'article']
+        if v not in valid:
+            raise ValueError(f'Content type must be one of: {valid}')
+        return v
+
+class MindsetMomentInput(BaseModel):
+    text: str
+    theme: str = "general"
+    target_stages: list = []  # [1,2,3,4,5] or [] for all
+    
+    @field_validator('text')
+    @classmethod
+    def validate_text(cls, v):
+        return sanitize_text(v, 500)
+
 
 # ============== AUTH ENDPOINTS ==============
 
@@ -1400,6 +1430,239 @@ async def admin_extended_stats(user=Depends(get_admin_user)):
         "mentor_offers": total_mentor_offers
     }
 
+
+
+
+# ============== CONTENT LIBRARY ENDPOINTS ==============
+
+@app.post("/api/admin/content")
+async def create_content(data: ContentPieceInput, user=Depends(get_admin_user)):
+    """Create a new content piece (video or article)."""
+    content = {
+        "title": sanitize_text(data.title, 200),
+        "content_type": data.content_type,
+        "body": data.body,  # URL or article content
+        "description": sanitize_text(data.description, 1000),
+        "theme": data.theme,
+        "display_locations": data.display_locations,
+        "target_stages": data.target_stages,
+        "target_patterns": data.target_patterns,
+        "thumbnail_url": data.thumbnail_url,
+        "duration_minutes": data.duration_minutes,
+        "views": 0,
+        "active": True,
+        "created_by": user['id'],
+        "created_at": datetime.now(),
+        "updated_at": datetime.now()
+    }
+    result = await db.content_library.insert_one(content)
+    content['_id'] = result.inserted_id
+    logger.info(f"Admin {user['email']} created content: {data.title}")
+    return {"content": serialize_doc(content)}
+
+
+@app.get("/api/admin/content")
+async def get_all_content(user=Depends(get_admin_user)):
+    """Get all content pieces for admin management."""
+    content = await db.content_library.find().sort("created_at", -1).to_list(length=500)
+    return {"content": [serialize_doc(c) for c in content]}
+
+
+@app.put("/api/admin/content/{content_id}")
+async def update_content(content_id: str, data: ContentPieceInput, user=Depends(get_admin_user)):
+    """Update a content piece."""
+    if not ObjectId.is_valid(content_id):
+        raise HTTPException(status_code=400, detail="Invalid content ID")
+    
+    update_data = {
+        "title": sanitize_text(data.title, 200),
+        "content_type": data.content_type,
+        "body": data.body,
+        "description": sanitize_text(data.description, 1000),
+        "theme": data.theme,
+        "display_locations": data.display_locations,
+        "target_stages": data.target_stages,
+        "target_patterns": data.target_patterns,
+        "thumbnail_url": data.thumbnail_url,
+        "duration_minutes": data.duration_minutes,
+        "updated_at": datetime.now()
+    }
+    
+    result = await db.content_library.update_one(
+        {"_id": ObjectId(content_id)},
+        {"$set": update_data}
+    )
+    
+    if result.matched_count == 0:
+        raise HTTPException(status_code=404, detail="Content not found")
+    
+    logger.info(f"Admin {user['email']} updated content: {content_id}")
+    return {"updated": True}
+
+
+@app.delete("/api/admin/content/{content_id}")
+async def delete_content(content_id: str, user=Depends(get_admin_user)):
+    """Delete a content piece."""
+    if not ObjectId.is_valid(content_id):
+        raise HTTPException(status_code=400, detail="Invalid content ID")
+    
+    result = await db.content_library.delete_one({"_id": ObjectId(content_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Content not found")
+    
+    logger.info(f"Admin {user['email']} deleted content: {content_id}")
+    return {"deleted": True}
+
+
+@app.post("/api/admin/mindset-moments")
+async def create_mindset_moment(data: MindsetMomentInput, user=Depends(get_admin_user)):
+    """Create a mindset moment (short reminder before challenges)."""
+    moment = {
+        "text": data.text,
+        "theme": data.theme,
+        "target_stages": data.target_stages,
+        "active": True,
+        "created_by": user['id'],
+        "created_at": datetime.now()
+    }
+    result = await db.mindset_moments.insert_one(moment)
+    moment['_id'] = result.inserted_id
+    logger.info(f"Admin {user['email']} created mindset moment")
+    return {"moment": serialize_doc(moment)}
+
+
+@app.get("/api/admin/mindset-moments")
+async def get_all_mindset_moments(user=Depends(get_admin_user)):
+    """Get all mindset moments."""
+    moments = await db.mindset_moments.find().sort("created_at", -1).to_list(length=500)
+    return {"moments": [serialize_doc(m) for m in moments]}
+
+
+@app.delete("/api/admin/mindset-moments/{moment_id}")
+async def delete_mindset_moment(moment_id: str, user=Depends(get_admin_user)):
+    """Delete a mindset moment."""
+    if not ObjectId.is_valid(moment_id):
+        raise HTTPException(status_code=400, detail="Invalid moment ID")
+    
+    result = await db.mindset_moments.delete_one({"_id": ObjectId(moment_id)})
+    if result.deleted_count == 0:
+        raise HTTPException(status_code=404, detail="Moment not found")
+    
+    logger.info(f"Admin {user['email']} deleted mindset moment: {moment_id}")
+    return {"deleted": True}
+
+
+@app.get("/api/admin/content/analytics")
+async def get_content_analytics(user=Depends(get_admin_user)):
+    """Get content engagement analytics."""
+    # Top viewed content
+    top_content = await db.content_library.find({"active": True}).sort("views", -1).limit(10).to_list(length=10)
+    
+    # Content by theme
+    themes_pipeline = [
+        {"$match": {"active": True}},
+        {"$group": {"_id": "$theme", "count": {"$sum": 1}, "total_views": {"$sum": "$views"}}}
+    ]
+    theme_stats = await db.content_library.aggregate(themes_pipeline).to_list(length=50)
+    
+    # Content by type
+    type_stats = await db.content_library.aggregate([
+        {"$match": {"active": True}},
+        {"$group": {"_id": "$content_type", "count": {"$sum": 1}}}
+    ]).to_list(length=10)
+    
+    return {
+        "top_content": [serialize_doc(c) for c in top_content],
+        "by_theme": theme_stats,
+        "by_type": type_stats,
+        "total_content": await db.content_library.count_documents({"active": True})
+    }
+
+
+# ============== USER CONTENT ENDPOINTS ==============
+
+@app.get("/api/content/for-me")
+async def get_content_for_user(
+    context: str = "library",  # onboarding, pre_challenge, post_reflection, pattern_insight, library
+    pattern: str = None,  # perfectionism, fear_of_judgment, etc.
+    user=Depends(get_current_user)
+):
+    """Get content relevant to the user's current context and stage."""
+    user_stage = user.get('stage')
+    
+    query = {
+        "active": True,
+        "display_locations": context
+    }
+    
+    # Filter by stage if applicable
+    if user_stage:
+        query["$or"] = [
+            {"target_stages": []},  # Available to all
+            {"target_stages": user_stage}
+        ]
+    
+    # Filter by pattern if specified
+    if pattern:
+        query["$or"] = [
+            {"target_patterns": []},
+            {"target_patterns": pattern}
+        ]
+    
+    content = await db.content_library.find(query).sort("created_at", -1).limit(10).to_list(length=10)
+    
+    return {"content": [serialize_doc(c) for c in content]}
+
+
+@app.post("/api/content/{content_id}/view")
+async def track_content_view(content_id: str, user=Depends(get_current_user)):
+    """Track that a user viewed this content."""
+    if not ObjectId.is_valid(content_id):
+        raise HTTPException(status_code=400, detail="Invalid content ID")
+    
+    # Increment view count
+    await db.content_library.update_one(
+        {"_id": ObjectId(content_id)},
+        {"$inc": {"views": 1}}
+    )
+    
+    # Track user's content engagement
+    await db.content_views.insert_one({
+        "user_id": user['id'],
+        "content_id": content_id,
+        "viewed_at": datetime.now()
+    })
+    
+    return {"tracked": True}
+
+
+@app.get("/api/mindset-moment")
+async def get_mindset_moment(user=Depends(get_current_user)):
+    """Get a random mindset moment for the user's stage."""
+    user_stage = user.get('stage')
+    
+    query = {"active": True}
+    if user_stage:
+        query["$or"] = [
+            {"target_stages": []},
+            {"target_stages": user_stage}
+        ]
+    
+    moments = await db.mindset_moments.find(query).to_list(length=100)
+    
+    if not moments:
+        # Fallback moments
+        fallback_moments = [
+            "Trying to be perfect guarantees mistakes. Just play.",
+            "Your body knows what to do when your mind gets out of the way.",
+            "Mistakes aren't your identity. They're just information.",
+            "The goal isn't perfection. The goal is action.",
+            "Fear of criticism keeps your work from the people who need it."
+        ]
+        return {"moment": {"text": random.choice(fallback_moments)}}
+    
+    moment = random.choice(moments)
+    return {"moment": serialize_doc(moment)}
 
 # ============== HEALTH ==============
 

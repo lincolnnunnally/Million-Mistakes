@@ -1,14 +1,42 @@
 [
   {
-    "content": "Fix tab navigation to auto-scroll and show content on mobile",
+    "content": "Create Content Library admin tab with video & article management",
     "status": "completed"
   },
   {
-    "content": "Ensure clicked tabs open/expand immediately",
+    "content": "Add content categorization system (themes, display locations, stages)",
     "status": "completed"
   },
   {
-    "content": "Test smooth navigation on mobile viewport",
-    "status": "completed"
+    "content": "Build Mindset Moments system (before daily challenges)",
+    "status": "in_progress"
+  },
+  {
+    "content": "Create 'Just Happened' quick-log button with comfort content",
+    "status": "pending"
+  },
+  {
+    "content": "Add 'Learn More' section after reflections with matched content",
+    "status": "pending"
+  },
+  {
+    "content": "Enhance pattern insights to show relevant teaching videos/articles",
+    "status": "pending"
+  },
+  {
+    "content": "Add onboarding video player after quiz results",
+    "status": "pending"
+  },
+  {
+    "content": "Build AI content suggestion system based on user reflections",
+    "status": "pending"
+  },
+  {
+    "content": "Create admin analytics for content engagement",
+    "status": "pending"
+  },
+  {
+    "content": "Test complete content flow end-to-end",
+    "status": "pending"
   }
 ]
