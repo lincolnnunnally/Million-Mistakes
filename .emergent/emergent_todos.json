@@ -1,10 +1,26 @@
 [
   {
-    "content": "Test complete flow with real content",
+    "content": "Write 5-6 powerful articles on perfectionism, fear, and mistakes",
     "status": "completed"
   },
   {
-    "content": "Final production check and restart services",
+    "content": "Create 15+ mindset moments from our conversations",
     "status": "completed"
+  },
+  {
+    "content": "Add all content via admin API",
+    "status": "completed"
+  },
+  {
+    "content": "Test complete user flows (onboarding → home → reflection → patterns)",
+    "status": "in_progress"
+  },
+  {
+    "content": "Take screenshots showing populated content working",
+    "status": "pending"
+  },
+  {
+    "content": "Final production verification",
+    "status": "pending"
   }
 ]
