@@ -1,42 +1,42 @@
 [
   {
-    "content": "Create Content Library admin tab with video & article management",
+    "content": "Build Admin Content Library tab UI with add/edit forms",
     "status": "completed"
   },
   {
-    "content": "Add content categorization system (themes, display locations, stages)",
+    "content": "Create Mindset Moments management interface in admin",
     "status": "completed"
   },
   {
-    "content": "Build Mindset Moments system (before daily challenges)",
+    "content": "Add content analytics dashboard in admin",
+    "status": "completed"
+  },
+  {
+    "content": "Build video/article display component for users",
     "status": "in_progress"
   },
   {
-    "content": "Create 'Just Happened' quick-log button with comfort content",
+    "content": "Integrate mindset moments before daily challenges",
     "status": "pending"
   },
   {
-    "content": "Add 'Learn More' section after reflections with matched content",
+    "content": "Add 'Learn More' section after reflections",
     "status": "pending"
   },
   {
-    "content": "Enhance pattern insights to show relevant teaching videos/articles",
+    "content": "Create 'Just Happened' emergency log button",
     "status": "pending"
   },
   {
-    "content": "Add onboarding video player after quiz results",
+    "content": "Add video player to onboarding flow",
     "status": "pending"
   },
   {
-    "content": "Build AI content suggestion system based on user reflections",
+    "content": "Enhance pattern page with teaching content",
     "status": "pending"
   },
   {
-    "content": "Create admin analytics for content engagement",
-    "status": "pending"
-  },
-  {
-    "content": "Test complete content flow end-to-end",
+    "content": "Test complete flow with real content",
     "status": "pending"
   }
 ]

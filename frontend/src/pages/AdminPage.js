@@ -18,7 +18,8 @@ import {
 } from '../components/ui/select';
 import {
   Flame, Users, BookOpen, MessageSquare, BarChart3, Plus, Trash2, Edit,
-  TrendingUp, Zap, Eye, LogOut, Shield, Video, UserPlus, Check, X, Handshake
+  TrendingUp, Zap, Eye, LogOut, Shield, Video, UserPlus, Check, X, Handshake,
+  FileText, Lightbulb, Play, Target
 } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -60,6 +61,29 @@ export default function AdminPage() {
   const [matchDomain, setMatchDomain] = useState('');
   const [matchNote, setMatchNote] = useState('');
 
+  // Content Library state
+  const [contentPieces, setContentPieces] = useState([]);
+  const [mindsetMoments, setMindsetMoments] = useState([]);
+  const [contentAnalytics, setContentAnalytics] = useState(null);
+  const [editingContent, setEditingContent] = useState(null);
+  
+  // Content form
+  const [contentTitle, setContentTitle] = useState('');
+  const [contentType, setContentType] = useState('video');
+  const [contentBody, setContentBody] = useState('');
+  const [contentDesc, setContentDesc] = useState('');
+  const [contentTheme, setContentTheme] = useState('general');
+  const [contentDisplayLocations, setContentDisplayLocations] = useState([]);
+  const [contentTargetStages, setContentTargetStages] = useState([]);
+  const [contentTargetPatterns, setContentTargetPatterns] = useState([]);
+  const [contentThumbnail, setContentThumbnail] = useState('');
+  const [contentDuration, setContentDuration] = useState(0);
+  
+  // Mindset moment form
+  const [momentText, setMomentText] = useState('');
+  const [momentTheme, setMomentTheme] = useState('general');
+  const [momentTargetStages, setMomentTargetStages] = useState([]);
+
   useEffect(() => {
     loadStats();
   }, []);
@@ -71,6 +95,7 @@ export default function AdminPage() {
     else if (tab === 'stories') loadStories();
     else if (tab === 'videos') loadVideos();
     else if (tab === 'community') loadCommunity();
+    else if (tab === 'content') loadContentLibrary();
   }, [tab]);
 
   const loadStats = async () => {
@@ -118,6 +143,19 @@ export default function AdminPage() {
       setBuddyRequests(buddyData?.requests || []);
       setConnections(connData?.connections || []);
       setMentorOffers(mentorData?.offers || []);
+    } catch (err) { console.error(err); }
+  };
+
+  const loadContentLibrary = async () => {
+    try {
+      const [contentData, momentsData, analyticsData] = await Promise.all([
+        api.get('/api/admin/content'),
+        api.get('/api/admin/mindset-moments'),
+        api.get('/api/admin/content/analytics')
+      ]);
+      setContentPieces(contentData?.content || []);
+      setMindsetMoments(momentsData?.moments || []);
+      setContentAnalytics(analyticsData);
     } catch (err) { console.error(err); }
   };
 
@@ -181,6 +219,140 @@ export default function AdminPage() {
   const resetVideoForm = () => {
     setEditingVideo(null); setVideoTitle(''); setVideoDesc('');
     setVideoUrl(''); setVideoDomain('general'); setVideoStage('0'); setVideoThumb('');
+  };
+
+
+  // Content Library CRUD
+  const handleCreateContent = async () => {
+    if (!contentTitle.trim() || !contentBody.trim()) {
+      toast.error('Title and content are required');
+      return;
+    }
+    try {
+      await api.post('/api/admin/content', {
+        title: contentTitle,
+        content_type: contentType,
+        body: contentBody,
+        description: contentDesc,
+        theme: contentTheme,
+        display_locations: contentDisplayLocations,
+        target_stages: contentTargetStages,
+        target_patterns: contentTargetPatterns,
+        thumbnail_url: contentThumbnail,
+        duration_minutes: contentDuration
+      });
+      toast.success('Content created!');
+      resetContentForm();
+      loadContentLibrary();
+    } catch (err) {
+      toast.error('Failed to create content');
+    }
+  };
+
+  const handleUpdateContent = async () => {
+    if (!editingContent) return;
+    try {
+      await api.put(`/api/admin/content/${editingContent.id}`, {
+        title: contentTitle,
+        content_type: contentType,
+        body: contentBody,
+        description: contentDesc,
+        theme: contentTheme,
+        display_locations: contentDisplayLocations,
+        target_stages: contentTargetStages,
+        target_patterns: contentTargetPatterns,
+        thumbnail_url: contentThumbnail,
+        duration_minutes: contentDuration
+      });
+      toast.success('Content updated!');
+      resetContentForm();
+      loadContentLibrary();
+    } catch (err) {
+      toast.error('Failed to update content');
+    }
+  };
+
+  const handleDeleteContent = async (id) => {
+    if (!confirm('Delete this content?')) return;
+    try {
+      await api.delete(`/api/admin/content/${id}`);
+      toast.success('Content deleted');
+      loadContentLibrary();
+    } catch (err) {
+      toast.error('Failed to delete content');
+    }
+  };
+
+  const resetContentForm = () => {
+    setEditingContent(null);
+    setContentTitle('');
+    setContentType('video');
+    setContentBody('');
+    setContentDesc('');
+    setContentTheme('general');
+    setContentDisplayLocations([]);
+    setContentTargetStages([]);
+    setContentTargetPatterns([]);
+    setContentThumbnail('');
+    setContentDuration(0);
+  };
+
+  const editContent = (content) => {
+    setEditingContent(content);
+    setContentTitle(content.title);
+    setContentType(content.content_type);
+    setContentBody(content.body);
+    setContentDesc(content.description);
+    setContentTheme(content.theme);
+    setContentDisplayLocations(content.display_locations);
+    setContentTargetStages(content.target_stages);
+    setContentTargetPatterns(content.target_patterns);
+    setContentThumbnail(content.thumbnail_url);
+    setContentDuration(content.duration_minutes);
+  };
+
+  // Mindset Moments CRUD
+  const handleCreateMoment = async () => {
+    if (!momentText.trim()) {
+      toast.error('Moment text is required');
+      return;
+    }
+    try {
+      await api.post('/api/admin/mindset-moments', {
+        text: momentText,
+        theme: momentTheme,
+        target_stages: momentTargetStages
+      });
+      toast.success('Mindset moment created!');
+      resetMomentForm();
+      loadContentLibrary();
+    } catch (err) {
+      toast.error('Failed to create moment');
+    }
+  };
+
+  const handleDeleteMoment = async (id) => {
+    if (!confirm('Delete this mindset moment?')) return;
+    try {
+      await api.delete(`/api/admin/mindset-moments/${id}`);
+      toast.success('Moment deleted');
+      loadContentLibrary();
+    } catch (err) {
+      toast.error('Failed to delete moment');
+    }
+  };
+
+  const resetMomentForm = () => {
+    setMomentText('');
+    setMomentTheme('general');
+    setMomentTargetStages([]);
+  };
+
+  // Helper functions for multi-select
+  const toggleArrayItem = (array, item) => {
+    return array.includes(item) 
+      ? array.filter(i => i !== item)
+      : [...array, item];
   };
 
   // Mentor Match
@@ -275,6 +447,7 @@ export default function AdminPage() {
             <TabsList className="inline-flex">
               <TabsTrigger value="overview"><BarChart3 className="w-4 h-4 mr-1" /> Overview</TabsTrigger>
               <TabsTrigger value="users"><Users className="w-4 h-4 mr-1" /> Users</TabsTrigger>
+              <TabsTrigger value="content"><Lightbulb className="w-4 h-4 mr-1" /> Content Library</TabsTrigger>
               <TabsTrigger value="mantras"><BookOpen className="w-4 h-4 mr-1" /> Mantras</TabsTrigger>
               <TabsTrigger value="reflections"><MessageSquare className="w-4 h-4 mr-1" /> Reflections</TabsTrigger>
               <TabsTrigger value="stories"><MessageSquare className="w-4 h-4 mr-1" /> Stories</TabsTrigger>
@@ -506,6 +679,399 @@ export default function AdminPage() {
           </TabsContent>
 
           {/* ========== MANTRAS ========== */}
+
+
+          {/* ========== CONTENT LIBRARY ========== */}
+          <TabsContent value="content">
+            <div className="space-y-6">
+              {/* Analytics Overview */}
+              {contentAnalytics && (
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <Card>
+                    <CardContent className="p-4">
+                      <p className="text-2xl font-display font-bold text-[hsl(18,92%,52%)]">
+                        {contentAnalytics.total_content}
+                      </p>
+                      <p className="text-xs text-[hsl(22,12%,40%)]">Total Content Pieces</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <p className="text-2xl font-display font-bold text-[hsl(173,55%,34%)]">
+                        {contentAnalytics.by_type?.find(t => t._id === 'video')?.count || 0}
+                      </p>
+                      <p className="text-xs text-[hsl(22,12%,40%)]">Videos</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <p className="text-2xl font-display font-bold text-[hsl(43,92%,55%)]">
+                        {contentAnalytics.by_type?.find(t => t._id === 'article')?.count || 0}
+                      </p>
+                      <p className="text-xs text-[hsl(22,12%,40%)]">Articles</p>
+                    </CardContent>
+                  </Card>
+                  <Card>
+                    <CardContent className="p-4">
+                      <p className="text-2xl font-display font-bold text-[hsl(200,70%,40%)]">
+                        {mindsetMoments.length}
+                      </p>
+                      <p className="text-xs text-[hsl(22,12%,40%)]">Mindset Moments</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              )}
+
+              {/* Create Content Piece */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg font-display">
+                    {editingContent ? 'Edit Content Piece' : 'Create New Content'}
+                  </CardTitle>
+                  <p className="text-sm text-[hsl(22,12%,40%)] mt-1">
+                    Add teaching videos, articles, and guidance that appear exactly when users need them
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Content Type */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Content Type</label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="contentType"
+                          value="video"
+                          checked={contentType === 'video'}
+                          onChange={(e) => setContentType(e.target.value)}
+                          className="w-4 h-4"
+                        />
+                        <Play className="w-4 h-4" />
+                        Video
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="contentType"
+                          value="article"
+                          checked={contentType === 'article'}
+                          onChange={(e) => setContentType(e.target.value)}
+                          className="w-4 h-4"
+                        />
+                        <FileText className="w-4 h-4" />
+                        Article
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Title */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Title *</label>
+                    <Input
+                      placeholder="e.g., The Perfectionism Trap - My Tennis Story"
+                      value={contentTitle}
+                      onChange={(e) => setContentTitle(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Body (URL or Content) */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      {contentType === 'video' ? 'Video URL *' : 'Article Content *'}
+                    </label>
+                    {contentType === 'video' ? (
+                      <Input
+                        placeholder="https://youtube.com/watch?v=..."
+                        value={contentBody}
+                        onChange={(e) => setContentBody(e.target.value)}
+                      />
+                    ) : (
+                      <textarea
+                        className="w-full min-h-[200px] p-3 border rounded-md"
+                        placeholder="Write your article here (supports Markdown)..."
+                        value={contentBody}
+                        onChange={(e) => setContentBody(e.target.value)}
+                      />
+                    )}
+                  </div>
+
+                  {/* Description */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Description</label>
+                    <textarea
+                      className="w-full p-2 border rounded-md"
+                      rows="2"
+                      placeholder="Brief description of what users will learn..."
+                      value={contentDesc}
+                      onChange={(e) => setContentDesc(e.target.value)}
+                    />
+                  </div>
+
+                  {/* Theme */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Theme</label>
+                    <select
+                      className="w-full p-2 border rounded-md"
+                      value={contentTheme}
+                      onChange={(e) => setContentTheme(e.target.value)}
+                    >
+                      <option value="general">General</option>
+                      <option value="perfectionism">Perfectionism</option>
+                      <option value="fear_of_judgment">Fear of Judgment</option>
+                      <option value="fear_of_criticism">Fear of Criticism</option>
+                      <option value="analysis_paralysis">Analysis Paralysis</option>
+                      <option value="paradox_of_choice">Paradox of Choice</option>
+                      <option value="people_pleasing">People Pleasing</option>
+                      <option value="self_doubt">Self Doubt</option>
+                      <option value="avoidance">Avoidance</option>
+                      <option value="comfort_zone">Comfort Zone</option>
+                    </select>
+                  </div>
+
+                  {/* Display Locations */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Where Should This Appear?</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {['onboarding', 'pre_challenge', 'post_reflection', 'pattern_insight', 'library'].map(loc => (
+                        <label key={loc} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50">
+                          <input
+                            type="checkbox"
+                            checked={contentDisplayLocations.includes(loc)}
+                            onChange={() => setContentDisplayLocations(toggleArrayItem(contentDisplayLocations, loc))}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm capitalize">{loc.replace('_', ' ')}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <p className="text-xs text-[hsl(22,12%,40%)] mt-1">
+                      Select one or more locations where this content will be shown to users
+                    </p>
+                  </div>
+
+                  {/* Target Stages */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Target Stages (leave empty for all)</label>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map(stage => (
+                        <label key={stage} className="flex items-center gap-1 p-2 border rounded cursor-pointer hover:bg-gray-50">
+                          <input
+                            type="checkbox"
+                            checked={contentTargetStages.includes(stage)}
+                            onChange={() => setContentTargetStages(toggleArrayItem(contentTargetStages, stage))}
+                            className="w-4 h-4"
+                          />
+                          Stage {stage}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Target Patterns */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">Target Patterns (leave empty for all)</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {['perfectionism', 'fear_of_judgment', 'fear_of_criticism', 'paradox_of_choice'].map(pattern => (
+                        <label key={pattern} className="flex items-center gap-2 p-2 border rounded cursor-pointer hover:bg-gray-50">
+                          <input
+                            type="checkbox"
+                            checked={contentTargetPatterns.includes(pattern)}
+                            onChange={() => setContentTargetPatterns(toggleArrayItem(contentTargetPatterns, pattern))}
+                            className="w-4 h-4"
+                          />
+                          <span className="text-sm capitalize">{pattern.replace('_', ' ')}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Optional Fields */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-sm font-medium mb-2 block">Thumbnail URL (optional)</label>
+                      <Input
+                        placeholder="https://..."
+                        value={contentThumbnail}
+                        onChange={(e) => setContentThumbnail(e.target.value)}
+                      />
+                    </div>
+                    {contentType === 'video' && (
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">Duration (minutes)</label>
+                        <Input
+                          type="number"
+                          placeholder="3"
+                          value={contentDuration}
+                          onChange={(e) => setContentDuration(parseInt(e.target.value) || 0)}
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={editingContent ? handleUpdateContent : handleCreateContent}
+                      className="bg-[hsl(18,92%,52%)] hover:bg-[hsl(18,92%,48%)]"
+                    >
+                      {editingContent ? 'Update Content' : 'Create Content'}
+                    </Button>
+                    {editingContent && (
+                      <Button variant="outline" onClick={resetContentForm}>
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Content List */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg font-display">Your Content Library ({contentPieces.length})</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {contentPieces.map(content => (
+                      <div key={content.id} className="p-4 border rounded-lg hover:shadow-md transition-shadow">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              {content.content_type === 'video' ? (
+                                <Play className="w-4 h-4 text-[hsl(18,92%,52%)]" />
+                              ) : (
+                                <FileText className="w-4 h-4 text-[hsl(173,55%,34%)]" />
+                              )}
+                              <h3 className="font-semibold">{content.title}</h3>
+                              <Badge variant="outline" className="text-xs">{content.theme}</Badge>
+                            </div>
+                            {content.description && (
+                              <p className="text-sm text-[hsl(22,12%,40%)] mb-2">{content.description}</p>
+                            )}
+                            <div className="flex flex-wrap gap-2 text-xs">
+                              <Badge variant="secondary">{content.views || 0} views</Badge>
+                              {content.display_locations?.map(loc => (
+                                <Badge key={loc} variant="outline">{loc}</Badge>
+                              ))}
+                              {content.target_stages?.length > 0 && (
+                                <Badge variant="outline">Stages: {content.target_stages.join(', ')}</Badge>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => editContent(content)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteContent(content.id)}
+                            >
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    {contentPieces.length === 0 && (
+                      <p className="text-center text-[hsl(22,12%,40%)] py-8">
+                        No content yet. Create your first teaching piece above!
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Mindset Moments Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="text-lg font-display">Mindset Moments</CardTitle>
+                  <p className="text-sm text-[hsl(22,12%,40%)] mt-1">
+                    Short 1-2 sentence reminders shown before daily challenges
+                  </p>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Create Mindset Moment */}
+                  <div className="p-4 bg-[hsl(36,45%,94%)] rounded-lg space-y-3">
+                    <textarea
+                      className="w-full p-2 border rounded-md"
+                      rows="2"
+                      placeholder="e.g., Trying to be perfect guarantees mistakes. Just play."
+                      value={momentText}
+                      onChange={(e) => setMomentText(e.target.value)}
+                    />
+                    <div className="flex gap-4 flex-wrap">
+                      <select
+                        className="p-2 border rounded-md"
+                        value={momentTheme}
+                        onChange={(e) => setMomentTheme(e.target.value)}
+                      >
+                        <option value="general">General</option>
+                        <option value="perfectionism">Perfectionism</option>
+                        <option value="fear_of_judgment">Fear of Judgment</option>
+                        <option value="courage">Courage</option>
+                        <option value="action">Action</option>
+                      </select>
+                      <div className="flex gap-2">
+                        {[1, 2, 3, 4, 5].map(stage => (
+                          <label key={stage} className="flex items-center gap-1">
+                            <input
+                              type="checkbox"
+                              checked={momentTargetStages.includes(stage)}
+                              onChange={() => setMomentTargetStages(toggleArrayItem(momentTargetStages, stage))}
+                            />
+                            S{stage}
+                          </label>
+                        ))}
+                      </div>
+                      <Button 
+                        onClick={handleCreateMoment}
+                        size="sm"
+                        className="bg-[hsl(18,92%,52%)] hover:bg-[hsl(18,92%,48%)]"
+                      >
+                        <Plus className="w-4 h-4 mr-1" /> Add Moment
+                      </Button>
+                    </div>
+                  </div>
+
+                  {/* Mindset Moments List */}
+                  <div className="space-y-2">
+                    {mindsetMoments.map(moment => (
+                      <div key={moment.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{moment.text}</p>
+                          <div className="flex gap-2 mt-1">
+                            <Badge variant="outline" className="text-xs">{moment.theme}</Badge>
+                            {moment.target_stages?.length > 0 && (
+                              <Badge variant="outline" className="text-xs">
+                                Stages: {moment.target_stages.join(', ')}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteMoment(moment.id)}
+                        >
+                          <Trash2 className="w-4 h-4 text-red-500" />
+                        </Button>
+                      </div>
+                    ))}
+                    {mindsetMoments.length === 0 && (
+                      <p className="text-center text-[hsl(22,12%,40%)] py-4">
+                        No mindset moments yet. Add some powerful reminders above!
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           <TabsContent value="mantras">
             <div className="space-y-6">
               <Card>
