@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useApp } from '../lib/context';
 import { api } from '../lib/api';
@@ -6,10 +6,11 @@ import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
-import { Flame, ArrowLeft, Send, PartyPopper, BookOpen, Home, Zap } from 'lucide-react';
+import { Flame, ArrowLeft, Send, PartyPopper, BookOpen, Home, Zap, Lightbulb } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import CountUp from 'react-countup';
+import { ContentList } from '../components/ContentDisplay';
 
 const RESPONSE_OPTIONS = [
   { value: 'pushed_through', label: 'Pushed through it', emoji: '\u{1F4AA}' },
@@ -30,6 +31,7 @@ export default function ReflectionPage() {
   const [lesson, setLesson] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [result, setResult] = useState(null);
+  const [learnMoreContent, setLearnMoreContent] = useState([]);
 
   if (!challenge) {
     return (
@@ -55,6 +57,14 @@ export default function ReflectionPage() {
       });
       setResult(data);
       setStep(4);
+
+      // Load relevant "Learn More" content
+      try {
+        const contentData = await api.get('/api/content/for-me?context=post_reflection');
+        setLearnMoreContent(contentData?.content || []);
+      } catch (err) {
+        console.error('Failed to load learn more content:', err);
+      }
 
       // Fire confetti!
       const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -256,6 +266,28 @@ export default function ReflectionPage() {
                   <CardContent className="p-4">
                     <Flame className="w-5 h-5 text-[hsl(18,92%,52%)] mb-2 mx-auto" />
                     <p className="font-display text-sm italic">"{challenge.coaching_line}"</p>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Learn More Section */}
+              {learnMoreContent.length > 0 && (
+                <Card className="mb-6 text-left">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-display flex items-center gap-2">
+                      <Lightbulb className="w-5 h-5 text-[hsl(18,92%,52%)]" />
+                      Learn More
+                    </CardTitle>
+                    <p className="text-sm text-[hsl(22,12%,40%)]">
+                      Here's something that might help you on this journey:
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <ContentList 
+                      content={learnMoreContent}
+                      context="post_reflection"
+                      onView={(id) => api.post(`/api/content/${id}/view`).catch(() => {})}
+                    />
                   </CardContent>
                 </Card>
               )}

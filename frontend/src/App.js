@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { AppProvider, useApp } from './lib/context';
 import { Toaster } from './components/ui/sonner';
-import { Flame, Home, Trophy, BookOpen, TrendingUp, Brain, MessageSquare, Users, Video, Settings } from 'lucide-react';
+import { Flame, Home, Trophy, BookOpen, TrendingUp, Brain, MessageSquare, Users, Video, Settings, Lightbulb } from 'lucide-react';
 import './App.css';
 
 import ErrorBoundary from './components/ErrorBoundary';
@@ -23,6 +23,7 @@ import BuddiesPage from './pages/BuddiesPage';
 import VideosPage from './pages/VideosPage';
 import AdminPage from './pages/AdminPage';
 import SettingsPage from './pages/SettingsPage';
+import LibraryPage from './pages/LibraryPage';
 
 function ProtectedRoute({ children, requireAdmin = false, requireOnboarded = false }) {
   const { user, loading } = useApp();
@@ -60,7 +61,7 @@ function BottomNav() {
     { path: '/home', icon: Home, label: 'Home' },
     { path: '/vault', icon: Trophy, label: 'Vault' },
     { path: '/patterns', icon: Brain, label: 'Patterns' },
-    { path: '/stories', icon: MessageSquare, label: 'Stories' },
+    { path: '/library', icon: Lightbulb, label: 'Library' },
     { path: '/progress', icon: TrendingUp, label: 'Progress' }
   ];
 
@@ -126,6 +127,9 @@ function AppRoutes() {
         } />
         <Route path="/videos" element={
           <ProtectedRoute requireOnboarded><VideosPage /></ProtectedRoute>
+        } />
+        <Route path="/library" element={
+          <ProtectedRoute requireOnboarded><LibraryPage /></ProtectedRoute>
         } />
         <Route path="/admin" element={
           <ProtectedRoute requireAdmin><AdminPage /></ProtectedRoute>

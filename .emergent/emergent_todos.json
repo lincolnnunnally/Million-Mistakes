@@ -1,34 +1,10 @@
 [
   {
-    "content": "Create reusable ContentDisplay component for videos/articles",
+    "content": "Test complete flow with real content",
     "status": "completed"
   },
   {
-    "content": "Add mindset moment before daily challenges on HomePage",
+    "content": "Final production check and restart services",
     "status": "completed"
-  },
-  {
-    "content": "Create 'Just Happened' emergency button on HomePage",
-    "status": "completed"
-  },
-  {
-    "content": "Add video player to onboarding results page",
-    "status": "in_progress"
-  },
-  {
-    "content": "Add 'Learn More' section in ReflectionPage after submission",
-    "status": "pending"
-  },
-  {
-    "content": "Enhance PatternsPage with relevant teaching content",
-    "status": "pending"
-  },
-  {
-    "content": "Create content library page for users to browse all content",
-    "status": "pending"
-  },
-  {
-    "content": "Test complete user flow with sample content",
-    "status": "pending"
   }
 ]

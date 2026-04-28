@@ -3,8 +3,9 @@ import { api } from '../lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
 import { Badge } from '../components/ui/badge';
 import { Progress } from '../components/ui/progress';
-import { Flame, TrendingUp, Brain, Target, ArrowRight, Sparkles, ShieldCheck, AlertTriangle, Zap } from 'lucide-react';
+import { Flame, TrendingUp, Brain, Target, ArrowRight, Sparkles, ShieldCheck, AlertTriangle, Zap, Lightbulb } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { ContentList } from '../components/ContentDisplay';
 
 const THEME_COLORS = {
   fear_of_judgment: '#FF6B35',
@@ -20,6 +21,7 @@ const THEME_COLORS = {
 export default function PatternsPage() {
   const [patterns, setPatterns] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [patternContent, setPatternContent] = useState({});
 
   useEffect(() => {
     loadPatterns();
@@ -29,6 +31,24 @@ export default function PatternsPage() {
     try {
       const data = await api.get('/api/patterns');
       setPatterns(data);
+      
+      // Load content for detected patterns
+      if (data?.themes && data.themes.length > 0) {
+        const contentPromises = data.themes.map(async (theme) => {
+          try {
+            const contentData = await api.get(`/api/content/for-me?context=pattern_insight&pattern=${theme.theme}`);
+            return { theme: theme.theme, content: contentData?.content || [] };
+          } catch {
+            return { theme: theme.theme, content: [] };
+          }
+        });
+        const results = await Promise.all(contentPromises);
+        const contentMap = {};
+        results.forEach(r => {
+          contentMap[r.theme] = r.content;
+        });
+        setPatternContent(contentMap);
+      }
     } catch (err) {
       console.error('Failed to load patterns:', err);
     } finally {
@@ -199,6 +219,41 @@ export default function PatternsPage() {
                 </div>
               </CardContent>
             </Card>
+          </motion.div>
+        )}
+
+        {/* Pattern-Specific Teaching Content */}
+        {top_patterns && top_patterns.length > 0 && Object.keys(patternContent).length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.28 }}
+          >
+            {top_patterns.slice(0, 2).map((pattern) => {
+              const content = patternContent[pattern.theme];
+              if (!content || content.length === 0) return null;
+              
+              return (
+                <Card key={pattern.theme} className="mb-6">
+                  <CardHeader>
+                    <CardTitle className="text-lg font-display flex items-center gap-2">
+                      <Lightbulb className="w-5 h-5 text-[hsl(18,92%,52%)]" />
+                      About {pattern.label}
+                    </CardTitle>
+                    <p className="text-sm text-[hsl(22,12%,40%)]">
+                      This pattern showed up {pattern.count} times. Here's what you need to know:
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <ContentList 
+                      content={content}
+                      context="pattern_insight"
+                      onView={(id) => api.post(`/api/content/${id}/view`).catch(() => {})}
+                    />
+                  </CardContent>
+                </Card>
+              );
+            })}
           </motion.div>
         )}
 
